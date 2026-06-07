@@ -1,0 +1,73 @@
+{% extends 'base.html' %}
+
+{% block title %}Stock Movements{% endblock %}
+{% block page_title %}Stock Movements{% endblock %}
+
+{% block content %}
+<div class="dashboard-grid animate-fade" style="grid-template-columns: 1fr;">
+    <div class="hub-card" style="width: 100%;">
+        <div class="hub-header">
+            <h3>Inventory Transactions</h3>
+        </div>
+        <div style="overflow-x: auto; margin-top: 15px;">
+            <table style="width: 100%; border-collapse: collapse; text-align: left; color: var(--text-primary);">
+                <thead>
+                    <tr style="border-bottom: 2px solid var(--border-color);">
+                        <th style="padding: 10px;">Date</th>
+                        <th style="padding: 10px;">Product</th>
+                        <th style="padding: 10px;">Type</th>
+                        <th style="padding: 10px;">Qty Change</th>
+                        <th style="padding: 10px;">User</th>
+                        <th style="padding: 10px;">Notes</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for m in movements %}
+                    <tr style="border-bottom: 1px solid var(--border-color);">
+                        <td style="padding: 10px;">{{ m.timestamp.strftime('%Y-%m-%d %H:%M') }}</td>
+                        <td style="padding: 10px; color: var(--accent-blue);">{{ m.product.name }} ({{ m.product.sku }})</td>
+                        <td style="padding: 10px;">
+                            <span class="badge" 
+                                data-type="{{ m.movement_type | capitalize }}"
+                                data-product="{{ m.product.name }}"
+                                data-qty="{{ m.quantity_change }}"
+                                data-date="{{ m.timestamp.strftime('%Y-%m-%d %H:%M') }}"
+                                data-notes="{{ m.notes }}"
+                                style="cursor: pointer; transition: opacity 0.2s; background: 
+                                {% if m.movement_type == 'purchase' %}var(--success)
+                                {% elif m.movement_type == 'sale' %}var(--accent-blue)
+                                {% else %}var(--warning){% endif %}; padding: 4px 8px; border-radius: 4px; font-size: 0.8rem; color: #fff;"
+                                onmouseover="this.style.opacity=0.8"
+                                onmouseout="this.style.opacity=1"
+                                onclick="showTransactionDetails(this)">
+                                {{ m.movement_type | capitalize }}
+                            </span>
+                        </td>
+                        <td style="padding: 10px; font-weight: bold; color: {% if m.quantity_change > 0 %}var(--success){% else %}var(--danger){% endif %};">
+                            {% if m.quantity_change > 0 %}+{% endif %}{{ m.quantity_change }}
+                        </td>
+                        <td style="padding: 10px;">{{ m.user_id if m.user_id else 'System' }}</td>
+                        <td style="padding: 10px; color: var(--text-light); font-size: 0.9rem;">{{ m.notes }}</td>
+                    </tr>
+                    {% else %}
+                    <tr>
+                        <td colspan="6" style="padding: 15px; text-align: center; color: var(--text-light);">No movements recorded.</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<script>
+function showTransactionDetails(element) {
+    const type = element.getAttribute('data-type');
+    const product = element.getAttribute('data-product');
+    const qty = element.getAttribute('data-qty');
+    const date = element.getAttribute('data-date');
+    const notes = element.getAttribute('data-notes');
+    alert(`Transaction Details\n\nType: ${type}\nProduct: ${product}\nQuantity Change: ${qty}\nDate: ${date}\nNotes: ${notes}`);
+}
+</script>
+{% endblock %}

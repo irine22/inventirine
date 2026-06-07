@@ -1,0 +1,137 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="animate-fade" style="max-width: 650px; margin: 0 auto;">
+    <div class="hub-card" style="padding: 40px; border: 1px solid var(--accent-blue-dim);">
+        <div style="display: flex; align-items: center; gap: 15px; margin-bottom: 30px;">
+            <div style="width: 50px; height: 50px; border-radius: 12px; background: rgba(102, 252, 241, 0.1); border: 1px solid var(--accent-blue); display: flex; align-items: center; justify-content: center; color: var(--accent-blue); font-size: 1.5rem;">
+                📦
+            </div>
+            <div>
+                <h2 style="color: var(--text-light); margin: 0;">Stock Ordering Hub</h2>
+                <p style="color: var(--text-primary); font-size: 0.85rem; margin: 0; margin-bottom: 5px;">Request inventory restock securely from verified suppliers</p>
+                <a href="{{ url_for('inventory.admin_orders') }}" class="btn btn-outline" style="font-size: 0.8rem; padding: 5px 10px; display: inline-block;">View Placed Orders</a>
+            </div>
+        </div>
+
+        <form method="POST">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+            <!-- Supplier Selector -->
+            <div style="margin-bottom: 25px;">
+                <label for="supplier_id" style="display: block; color: var(--text-light); margin-bottom: 8px; font-size: 0.9rem; font-weight: 600;">SELECT SUPPLIER</label>
+                <select name="supplier_id" id="supplier_id" required
+                        style="width: 100%; padding: 12px; background: rgba(0,0,0,0.3); border: 1px solid var(--border-color); border-radius: 8px; color: var(--text-light); outline: none; transition: all 0.3s; font-size: 1rem; cursor: pointer;"
+                        onfocus="this.style.borderColor='var(--accent-blue)'; this.style.boxShadow='0 0 10px rgba(102,252,241,0.2)';"
+                        onblur="this.style.borderColor='var(--border-color)'; this.style.boxShadow='none';">
+                    <option value="" disabled selected>-- Choose a Supplier --</option>
+                    {% for s in suppliers %}
+                        <option value="{{ s.id }}">{{ s.company_name or s.username }} — {{ s.email }}</option>
+                    {% endfor %}
+                </select>
+                {% if suppliers|length == 0 %}
+                <p style="color: var(--danger); font-size: 0.8rem; margin-top: 5px;">⚠ No registered suppliers found. A supplier must register first.</p>
+                {% endif %}
+            </div>
+
+            <!-- Product Selector -->
+            <div style="margin-bottom: 25px;">
+                <label for="product_id" style="display: block; color: var(--text-light); margin-bottom: 8px; font-size: 0.9rem; font-weight: 600;">SELECT PRODUCT TO ORDER</label>
+                <select name="product_id" id="product_id" required 
+                        style="width: 100%; padding: 12px; background: rgba(0,0,0,0.3); border: 1px solid var(--border-color); border-radius: 8px; color: var(--text-light); outline: none; transition: all 0.3s; font-size: 1rem; cursor: pointer;"
+                        onfocus="this.style.borderColor='var(--accent-blue)'; this.style.boxShadow='0 0 10px rgba(102,252,241,0.2)';"
+                        onblur="this.style.borderColor='var(--border-color)'; this.style.boxShadow='none';">
+                    <option value="" disabled selected>-- Select a Product --</option>
+                    {% for p in products %}
+                        <option value="{{ p.id }}" data-price="{{ p.unit_price }}" data-supplier="{{ p.supplier_id or '' }}" {% if p.quantity < 10 %}style="color: var(--danger); font-weight: bold;"{% endif %}>
+                            {{ p.name }} (SKU: {{ p.sku }}) - {{ p.unit_price | int }} FCFA {% if p.quantity < 10 %}[LOW STOCK: {{ p.quantity }} left]{% else %}[Stock: {{ p.quantity }}]{% endif %}
+                        </option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <!-- Quantity Selector -->
+            <div style="margin-bottom: 30px;">
+                <label for="quantity" style="display: block; color: var(--text-light); margin-bottom: 8px; font-size: 0.9rem; font-weight: 600;">ORDER QUANTITY</label>
+                <input type="number" name="quantity" id="quantity" min="1" value="10" required 
+                       style="width: 100%; padding: 12px; background: rgba(0,0,0,0.3); border: 1px solid var(--border-color); border-radius: 8px; color: var(--text-light); outline: none; transition: all 0.3s; font-size: 1rem;"
+                       onfocus="this.style.borderColor='var(--accent-blue)'; this.style.boxShadow='0 0 10px rgba(102,252,241,0.2)';"
+                       onblur="this.style.borderColor='var(--border-color)'; this.style.boxShadow='none';">
+            </div>
+
+            <!-- Auto-Calculator -->
+            <div style="background: rgba(102, 252, 241, 0.05); border: 1px dashed var(--accent-blue-dim); border-radius: 8px; padding: 20px; margin-bottom: 35px;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                    <span style="font-size: 0.9rem; color: var(--text-primary);">Supplier:</span>
+                    <span id="display-supplier" style="font-weight: 600; color: var(--text-light);">Not selected</span>
+                </div>
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                    <span style="font-size: 0.9rem; color: var(--text-primary);">Unit Price:</span>
+                    <span id="display-unit-price" style="font-weight: 600; color: var(--text-light);">0 FCFA</span>
+                </div>
+                <div style="display: flex; justify-content: space-between; align-items: center; border-top: 1px solid rgba(255,255,255,0.05); padding-top: 10px;">
+                    <span style="font-size: 1rem; color: var(--accent-blue); font-weight: 600;">Estimated Total Cost:</span>
+                    <span id="display-total-price" style="font-size: 1.2rem; font-weight: 700; color: var(--accent-blue);">0 FCFA</span>
+                </div>
+            </div>
+
+            <!-- Actions -->
+            <div style="display: flex; gap: 15px;">
+                <a href="{{ url_for('inventory.dashboard') }}" class="btn btn-outline" style="flex: 1; text-align: center; text-decoration: none; padding: 12px;">
+                    Cancel
+                </a>
+                <button type="submit" class="btn btn-primary" style="flex: 2; padding: 12px;">
+                    Place Restock Order
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', () => {
+        const supplierSelect = document.getElementById('supplier_id');
+        const productSelect = document.getElementById('product_id');
+        const quantityInput = document.getElementById('quantity');
+        const displaySupplier = document.getElementById('display-supplier');
+        const displayUnitPrice = document.getElementById('display-unit-price');
+        const displayTotalPrice = document.getElementById('display-total-price');
+
+        function formatFCFA(value) {
+            return new Intl.NumberFormat('fr-FR').format(value) + ' FCFA';
+        }
+
+        function updateSupplierDisplay() {
+            const selectedOption = supplierSelect.options[supplierSelect.selectedIndex];
+            if (!selectedOption || selectedOption.value === "") {
+                displaySupplier.textContent = 'Not selected';
+            } else {
+                displaySupplier.textContent = selectedOption.textContent.trim();
+            }
+        }
+
+        function calculateCost() {
+            const selectedOption = productSelect.options[productSelect.selectedIndex];
+            if (!selectedOption || selectedOption.value === "") {
+                displayUnitPrice.textContent = '0 FCFA';
+                displayTotalPrice.textContent = '0 FCFA';
+                return;
+            }
+
+            const unitPrice = parseFloat(selectedOption.getAttribute('data-price')) || 0;
+            const quantity = parseInt(quantityInput.value) || 0;
+            
+            displayUnitPrice.textContent = formatFCFA(unitPrice);
+            displayTotalPrice.textContent = formatFCFA(unitPrice * quantity);
+        }
+
+        supplierSelect.addEventListener('change', updateSupplierDisplay);
+        productSelect.addEventListener('change', calculateCost);
+        quantityInput.addEventListener('input', calculateCost);
+
+        // Run calculation once initially
+        calculateCost();
+        updateSupplierDisplay();
+    });
+</script>
+{% endblock %}

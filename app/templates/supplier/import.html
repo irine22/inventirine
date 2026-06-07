@@ -1,0 +1,27 @@
+{% extends 'base.html' %}
+{% block page_title %}Import Products{% endblock %}
+{% block content %}
+<div class="hub-card animate-fade" style="max-width: 500px; margin: 0 auto; text-align: center;">
+    <h3 style="color: var(--accent-blue); margin-bottom: 20px;">Bulk Import Products</h3>
+    <p style="color: var(--text-primary); font-size: 0.9rem; margin-bottom: 20px;">
+        Upload a CSV or JSON file containing your product catalog. Maximum file size is 5MB.
+    </p>
+    <form method="POST" enctype="multipart/form-data">
+        {{ form.hidden_tag() }}
+        <div style="margin-bottom: 20px;">
+            {{ form.file(class="btn btn-outline", style="width: 100%;") }}
+            {% for error in form.file.errors %}
+                <span style="color: var(--danger); font-size: 0.8rem; display: block; margin-top: 5px;">{{ error }}</span>
+            {% endfor %}
+        </div>
+        {{ form.submit(class="btn btn-primary", style="width: 100%;") }}
+    </form>
+    
+    <div style="margin-top: 30px; text-align: left; background: rgba(0,0,0,0.2); padding: 15px; border-radius: 8px;">
+        <h4 style="color: var(--text-light); font-size: 0.9rem;">CSV Format Example:</h4>
+        <pre style="color: var(--text-primary); font-size: 0.8rem; margin-top: 10px; overflow-x: auto;">name,sku,category,unit_price,quantity,description
+Widget A,WA-001,Widgets,19.99,100,A great widget
+Gadget B,GB-002,Gadgets,29.99,50,A superb gadget</pre>
+    </div>
+</div>
+{% endblock %}

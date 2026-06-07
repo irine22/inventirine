@@ -1,0 +1,55 @@
+{% extends 'base.html' %}
+{% block page_title %}{{ title }}{% endblock %}
+{% block content %}
+<div class="hub-card animate-fade" style="max-width: 600px; margin: 0 auto;">
+    <form method="POST" enctype="multipart/form-data">
+        {{ form.hidden_tag() }}
+        <div style="margin-bottom: 15px;">
+            <label style="color: var(--text-primary); font-size: 0.9rem;">Name</label>
+            {{ form.name(class="btn btn-outline", style="width: 100%; text-align: left;") }}
+        </div>
+        <div style="margin-bottom: 15px;">
+            <label style="color: var(--text-primary); font-size: 0.9rem;">SKU</label>
+            {{ form.sku(class="btn btn-outline", style="width: 100%; text-align: left;") }}
+        </div>
+        <div style="margin-bottom: 15px;">
+            <label style="color: var(--text-primary); font-size: 0.9rem;">Category</label>
+            {{ form.category(class="btn btn-outline", style="width: 100%; text-align: left;") }}
+        </div>
+        <div style="margin-bottom: 15px; display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px;">
+            <div>
+                <label style="color: var(--text-primary); font-size: 0.9rem;">Unit Price</label>
+                {{ form.unit_price(class="btn btn-outline", style="width: 100%; text-align: left;") }}
+            </div>
+            <div>
+                <label style="color: var(--text-primary); font-size: 0.9rem;">Initial Qty</label>
+                {% if product %}
+                    <input type="text" class="btn btn-outline" style="width: 100%; text-align: left; opacity: 0.5;" value="{{ product.quantity }}" disabled>
+                    <small style="color: var(--warning);">Use stock update form</small>
+                {% else %}
+                    {{ form.quantity(class="btn btn-outline", style="width: 100%; text-align: left;") }}
+                {% endif %}
+            </div>
+            <div>
+                <label style="color: var(--text-primary); font-size: 0.9rem;">Reorder Alert</label>
+                {{ form.reorder_threshold(class="btn btn-outline", style="width: 100%; text-align: left;") }}
+            </div>
+        </div>
+        <div style="margin-bottom: 15px; display: flex; align-items: center; gap: 20px;">
+            <div style="flex: 1;">
+                <label style="color: var(--text-primary); font-size: 0.9rem;">Product Image</label>
+                {{ form.image(class="btn btn-outline", style="width: 100%; text-align: left;") }}
+            </div>
+            <div style="display: flex; align-items: center; gap: 10px; margin-top: 20px;">
+                {{ form.is_available(style="width: 20px; height: 20px;") }}
+                <label style="color: var(--text-primary); font-size: 0.9rem; margin: 0;">{{ form.is_available.label.text }}</label>
+            </div>
+        </div>
+        <div style="margin-bottom: 20px;">
+            <label style="color: var(--text-primary); font-size: 0.9rem;">Description</label>
+            {{ form.description(class="btn btn-outline", style="width: 100%; text-align: left; height: 100px;") }}
+        </div>
+        {{ form.submit(class="btn btn-primary", style="width: 100%;") }}
+    </form>
+</div>
+{% endblock %}

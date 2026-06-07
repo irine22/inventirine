@@ -1,0 +1,150 @@
+{% extends 'base.html' %}
+{% block page_title %}Stock Movements Log{% endblock %}
+{% block content %}
+<div class="animate-fade">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+        <p style="color: var(--text-primary);">
+            Chronological, read-only log of all stock movements for your products.
+            <span id="live-badge" style="display: inline-flex; align-items: center; gap: 6px; margin-left: 12px; padding: 3px 10px; border-radius: 12px; background: rgba(40,167,69,0.15); border: 1px solid rgba(40,167,69,0.4); color: var(--success); font-size: 0.75rem; font-weight: 600;">
+                <span style="width: 6px; height: 6px; border-radius: 50%; background: var(--success); display: inline-block;" id="live-dot"></span>
+                LIVE
+            </span>
+        </p>
+        <span style="color: var(--text-primary); font-size: 0.85rem; background: rgba(31,40,51,0.5); padding: 4px 12px; border-radius: 6px; border: 1px solid var(--border-color);">
+            <span id="movement-count">{{ movements|length }}</span> entries
+        </span>
+    </div>
+    <div style="overflow-x: auto; border: 1px solid var(--border-color); border-radius: 10px; background: rgba(31,40,51,0.5);">
+        <table style="width: 100%; border-collapse: collapse; color: var(--text-primary);" id="movements-table">
+            <thead>
+                <tr style="border-bottom: 1px solid var(--border-color); background: rgba(0,0,0,0.2);">
+                    <th style="padding: 12px; text-align: left;">Timestamp (UTC)</th>
+                    <th style="padding: 12px; text-align: left;">Product</th>
+                    <th style="padding: 12px; text-align: left;">Movement Type</th>
+                    <th style="padding: 12px; text-align: left;">Quantity Change</th>
+                    <th style="padding: 12px; text-align: left;">User ID</th>
+                    <th style="padding: 12px; text-align: left;">Notes</th>
+                </tr>
+            </thead>
+            <tbody id="movements-body">
+                {% for mov in movements %}
+                <tr class="movement-row" data-id="{{ mov.id }}" style="border-bottom: 1px solid var(--border-color);">
+                    <td style="padding: 12px;">{{ mov.timestamp.strftime('%Y-%m-%d %H:%M:%S') }}</td>
+                    <td style="padding: 12px;">{{ mov.product.name }} ({{ mov.product.sku }})</td>
+                    <td style="padding: 12px; text-transform: capitalize;">{{ mov.movement_type }}</td>
+                    <td style="padding: 12px;">
+                        <span style="color: {% if mov.quantity_change > 0 %}var(--success){% elif mov.quantity_change < 0 %}var(--danger){% else %}var(--text-light){% endif %}; font-weight: bold;">
+                            {% if mov.quantity_change > 0 %}+{% endif %}{{ mov.quantity_change }}
+                        </span>
+                    </td>
+                    <td style="padding: 12px;">{{ mov.user_id or 'System' }}</td>
+                    <td style="padding: 12px;">{{ mov.notes }}</td>
+                </tr>
+                {% else %}
+                <tr id="no-movements-row"><td colspan="6" style="padding: 30px; text-align: center; color: var(--text-primary);">No stock movements recorded yet. They will appear here in real time.</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<style>
+    @keyframes highlight-new {
+        from { background: rgba(102, 252, 241, 0.2); }
+        to { background: transparent; }
+    }
+    .movement-row.new-highlight {
+        animation: highlight-new 1.5s ease-out;
+    }
+</style>
+
+<script>
+(function() {
+    const tbody = document.getElementById('movements-body');
+    const countEl = document.getElementById('movement-count');
+    const dot = document.getElementById('live-dot');
+    const badge = document.getElementById('live-badge');
+
+    let lastId = 0;
+    const initialRows = tbody.querySelectorAll('.movement-row');
+    if (initialRows.length > 0) {
+        lastId = parseInt(initialRows[0].getAttribute('data-id'), 10);
+    }
+
+    const noRow = document.getElementById('no-movements-row');
+
+    function addRow(mov) {
+        if (noRow) { noRow.remove(); }
+        const tr = document.createElement('tr');
+        tr.className = 'movement-row new-highlight';
+        tr.setAttribute('data-id', mov.id);
+        tr.style.borderBottom = '1px solid var(--border-color)';
+
+        const qtyClass = mov.quantity_change > 0 ? 'var(--success)' : (mov.quantity_change < 0 ? 'var(--danger)' : 'var(--text-light)');
+        const qtySign = mov.quantity_change > 0 ? '+' : '';
+
+        tr.innerHTML = `
+            <td style="padding: 12px;">${mov.timestamp}</td>
+            <td style="padding: 12px;">${escHtml(mov.product_name)} (${escHtml(mov.product_sku)})</td>
+            <td style="padding: 12px; text-transform: capitalize;">${escHtml(mov.movement_type)}</td>
+            <td style="padding: 12px;">
+                <span style="color: ${qtyClass}; font-weight: bold;">${qtySign}${mov.quantity_change}</span>
+            </td>
+            <td style="padding: 12px;">${mov.user_id || 'System'}</td>
+            <td style="padding: 12px;">${escHtml(mov.notes)}</td>
+        `;
+
+        tbody.insertBefore(tr, tbody.firstChild);
+
+        setTimeout(function() {
+            tr.classList.remove('new-highlight');
+        }, 1500);
+    }
+
+    function escHtml(str) {
+        if (!str) return '';
+        var d = document.createElement('div');
+        d.textContent = str;
+        return d.innerHTML;
+    }
+
+    function poll() {
+        var url = '{{ url_for("supplier.api_movements") }}';
+        if (lastId > 0) {
+            url += '?since_id=' + lastId;
+        }
+        fetch(url, {
+            headers: { 'Accept': 'application/json' }
+        })
+        .then(function(r) { return r.json(); })
+        .then(function(data) {
+            if (data.count > 0) {
+                // data is ordered newest-first
+                for (var i = data.movements.length - 1; i >= 0; i--) {
+                    var mov = data.movements[i];
+                    if (mov.id > lastId) {
+                        addRow(mov);
+                        if (mov.id > lastId) { lastId = mov.id; }
+                    }
+                }
+                dot.style.background = 'var(--success)';
+                var total = tbody.querySelectorAll('.movement-row').length;
+                countEl.textContent = total;
+            }
+        })
+        .catch(function() {
+            dot.style.background = 'var(--danger)';
+        });
+    }
+
+    // Flash the dot periodically to show it's alive
+    setInterval(function() {
+        var c = dot.style.background;
+        dot.style.background = c === 'var(--success)' ? 'transparent' : 'var(--success)';
+    }, 2000);
+
+    // Poll every 3 seconds
+    setInterval(poll, 3000);
+})();
+</script>
+{% endblock %}

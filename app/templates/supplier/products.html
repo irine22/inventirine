@@ -1,0 +1,82 @@
+{% extends 'base.html' %}
+{% block page_title %}My Products{% endblock %}
+{% block content %}
+<div class="animate-fade">
+    <div style="display: flex; justify-content: space-between; margin-bottom: 20px;">
+        <form method="GET" style="display: flex; gap: 10px;">
+            <input type="text" name="search" value="{{ search }}" placeholder="Search Name or SKU" class="btn btn-outline" style="text-align: left;">
+            <select name="category" class="btn btn-outline" style="text-align: left;">
+                <option value="">All Categories</option>
+                {% for cat in categories %}
+                <option value="{{ cat }}" {% if active_cat == cat %}selected{% endif %}>{{ cat }}</option>
+                {% endfor %}
+            </select>
+            <button type="submit" class="btn btn-primary">Filter</button>
+        </form>
+        <div>
+            <a href="{{ url_for('supplier.add_product') }}" class="btn btn-primary" style="text-decoration: none;">+ Add Product</a>
+            <a href="{{ url_for('supplier.import_products') }}" class="btn btn-outline" style="text-decoration: none;">Import CSV/JSON</a>
+        </div>
+    </div>
+    <p style="margin-bottom: 20px; color: var(--text-secondary);">Use the Add Product button to save items to your supplier catalog. Once a product is finished, remove it using the Remove button.</p>
+
+    <table style="width: 100%; border-collapse: collapse; background: rgba(31,40,51,0.5); border: 1px solid var(--border-color); color: var(--text-primary);">
+        <tr style="border-bottom: 1px solid var(--border-color); background: rgba(0,0,0,0.2);">
+            <th style="padding: 12px; text-align: left;">Image</th>
+            <th style="padding: 12px; text-align: left;">Name</th>
+            <th style="padding: 12px; text-align: left;">SKU</th>
+            <th style="padding: 12px; text-align: left;">Category</th>
+            <th style="padding: 12px; text-align: left;">Price</th>
+            <th style="padding: 12px; text-align: left;">Stock</th>
+            <th style="padding: 12px; text-align: left;">Actions</th>
+        </tr>
+        {% for product in products %}
+        <tr style="border-bottom: 1px solid var(--border-color); {% if product.quantity == 0 or not product.is_available %}opacity: 0.8;{% endif %}">
+            <td style="padding: 12px;">
+                {% if product.image_path %}
+                <img src="{{ url_for('static', filename=product.image_path) }}" alt="{{ product.name }}" style="width: 50px; height: 50px; object-fit: cover; border-radius: 6px;">
+                {% else %}
+                <div style="width: 50px; height: 50px; background: rgba(0,0,0,0.2); border-radius: 6px; display: flex; align-items: center; justify-content: center; color: var(--text-secondary); font-size: 0.8rem;">No Img</div>
+                {% endif %}
+            </td>
+            <td style="padding: 12px;">
+                {{ product.name }}
+                {% if product.quantity == 0 %}
+                <span style="display: inline-block; margin-left: 8px; padding: 3px 8px; border-radius: 6px; background: rgba(255, 193, 7, 0.2); color: var(--warning); font-size: 0.75rem;">Finished</span>
+                {% elif not product.is_available %}
+                <span style="display: inline-block; margin-left: 8px; padding: 3px 8px; border-radius: 6px; background: rgba(220, 53, 69, 0.2); color: var(--danger); font-size: 0.75rem;">Unavailable</span>
+                {% endif %}
+            </td>
+            <td style="padding: 12px;">{{ product.sku }}</td>
+            <td style="padding: 12px;">{{ product.category }}</td>
+            <td style="padding: 12px;">{{ "{:,.0f}".format(product.unit_price) }} FCFA</td>
+            <td style="padding: 12px;">
+                <span style="{% if product.quantity <= product.reorder_threshold %}color: var(--danger); font-weight: bold;{% endif %}">
+                    {{ product.quantity }}
+                </span>
+            </td>
+            <td style="padding: 12px; display: flex; gap: 5px; flex-wrap: wrap;">
+                <a href="{{ url_for('supplier.edit_product', id=product.id) }}" class="btn btn-outline" style="padding: 5px 10px; text-decoration: none; font-size: 0.8rem;">Edit</a>
+                <form method="POST" action="{{ url_for('supplier.update_stock', id=product.id) }}" style="display:inline;">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <input type="number" name="quantity_change" placeholder="+/- Qty" required style="width: 70px; padding: 5px; background: rgba(0,0,0,0.2); border: 1px solid var(--border-color); color: var(--text-light);">
+                    <button type="submit" class="btn btn-primary" style="padding: 5px 10px; font-size: 0.8rem;">Update</button>
+                </form>
+                {% if product.quantity > 0 %}
+                <form method="POST" action="{{ url_for('supplier.finish_product', id=product.id) }}" style="display:inline;">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <button type="submit" class="btn btn-outline" style="padding: 5px 10px; font-size: 0.8rem; border-color: var(--accent-blue); color: var(--accent-blue);">Finish</button>
+                </form>
+                {% endif %}
+                <form method="POST" action="{{ url_for('supplier.delete_product', id=product.id) }}" style="display:inline;" onsubmit="return confirm('Remove this product from your catalog?');">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <button type="submit" class="btn btn-outline" style="padding: 5px 10px; font-size: 0.8rem; border-color: var(--danger); color: var(--danger);">Remove</button>
+                </form>
+            </td>
+        </tr>
+        {% else %}
+        <tr><td colspan="6" style="padding: 20px; text-align: center;">No products found.</td></tr>
+        {% endfor %}
+    </table>
+</div>
+{% endblock %}

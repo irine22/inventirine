@@ -1,0 +1,39 @@
+{% extends 'base.html' %}
+
+{% block page_title %}Supplier Verification{% endblock %}
+
+{% block content %}
+<div class="animate-fade" style="max-width: 500px; margin: 100px auto;">
+    <div class="hub-card" style="text-align: center; border: 1px solid var(--accent-blue);">
+        <div style="font-size: 3rem; color: var(--accent-blue); margin-bottom: 20px;">🔐</div>
+        <h2 style="color: var(--text-light); margin-bottom: 10px;">Supplier Verification</h2>
+        <p style="color: var(--text-primary); margin-bottom: 30px;">
+            You are accessing a sensitive section. Please re-enter your password to proceed.
+            This session will remain verified for 5 minutes of inactivity.
+        </p>
+
+        <form method="POST">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <div style="margin-bottom: 20px; text-align: left;">
+                <label for="password" style="display: block; color: var(--text-light); margin-bottom: 8px; font-size: 0.9rem;">Supplier Password</label>
+                <input type="password" name="password" id="password" required 
+                       style="width: 100%; padding: 12px; background: rgba(255,255,255,0.05); border: 1px solid var(--border-color); border-radius: 8px; color: var(--text-light); outline: none; transition: border-color 0.3s;"
+                       onfocus="this.style.borderColor='var(--accent-blue)'"
+                       onblur="this.style.borderColor='var(--border-color)'">
+            </div>
+
+            <button type="submit" class="btn-primary" style="width: 100%; padding: 12px; font-weight: 600;">
+                Verify & Proceed
+            </button>
+        </form>
+
+        <div style="margin-top: 20px;">
+            <a href="{{ url_for('inventory.dashboard') }}" style="color: var(--text-primary); font-size: 0.8rem; text-decoration: none; transition: color 0.3s;"
+               onmouseover="this.style.color='var(--accent-blue)'"
+               onmouseout="this.style.color='var(--text-primary)'">
+                Cancel and return to Dashboard
+            </a>
+        </div>
+    </div>
+</div>
+{% endblock %}

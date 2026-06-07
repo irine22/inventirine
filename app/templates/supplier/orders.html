@@ -1,0 +1,251 @@
+{% extends 'base.html' %}
+{% block page_title %}Pending Orders{% endblock %}
+{% block content %}
+<div class="animate-fade">
+    <h3 style="margin-bottom: 20px; color: var(--accent-blue);">Live incoming orders from IMS Admin</h3>
+    <div id="live-orders-summary" style="display: flex; flex-wrap: wrap; gap: 20px; margin-bottom: 25px;">
+        <div style="flex: 1 1 250px; padding: 18px; border: 1px solid var(--border-color); border-radius: 12px; background: rgba(10, 13, 18, 0.85);">
+            <div style="font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 8px;">Pending admin orders</div>
+            <div style="font-size: 2rem; color: var(--accent-blue);" id="pending-order-count">{{ orders|selectattr('status', 'equalto', 'pending')|list|length }}</div>
+        </div>
+        <div style="flex: 2 1 400px; padding: 18px; border: 1px solid var(--border-color); border-radius: 12px; background: rgba(10, 13, 18, 0.85);">
+            <div style="font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 8px;">Latest admin orders</div>
+            <ul id="live-orders-list" style="list-style: none; padding: 0; margin: 0; color: var(--text-primary); font-size: 0.95rem;">
+                {% for order in orders[:5] %}
+                <li style="margin-bottom: 8px;">#{{ order.id }} — {{ order.product.name }} × {{ order.quantity }} <span style="color: var(--warning);">{{ order.status|upper }}</span></li>
+                {% else %}
+                <li style="opacity: 0.8;">No recent admin orders yet.</li>
+                {% endfor %}
+            </ul>
+        </div>
+    </div>
+    <table style="width: 100%; border-collapse: collapse; background: rgba(31,40,51,0.5); border: 1px solid var(--border-color); color: var(--text-primary);">
+        <thead>
+            <tr style="border-bottom: 1px solid var(--border-color); background: rgba(0,0,0,0.2);">
+                <th style="padding: 12px; text-align: left;">Order ID</th>
+                <th style="padding: 12px; text-align: left;">Date</th>
+                <th style="padding: 12px; text-align: left;">Product</th>
+                <th style="padding: 12px; text-align: left;">Quantity</th>
+                <th style="padding: 12px; text-align: left;">Status</th>
+                <th style="padding: 12px; text-align: left;">Actions</th>
+            </tr>
+        </thead>
+        <tbody id="order-table-body">
+            {% for order in orders %}
+            <tr data-order-id="{{ order.id }}" style="border-bottom: 1px solid var(--border-color);">
+                <td style="padding: 12px;">#{{ order.id }}</td>
+                <td style="padding: 12px;">{{ order.timestamp.strftime('%Y-%m-%d %H:%M') }}</td>
+                <td style="padding: 12px;">{{ order.product.name }}</td>
+                <td style="padding: 12px;">{{ order.quantity }}</td>
+                <td style="padding: 12px;">
+                    <span class="order-status-tag" style="padding: 3px 8px; border-radius: 4px; font-size: 0.8rem; background: {% if order.status == 'pending' %}rgba(255,193,7,0.2){% elif order.status == 'shipped' %}rgba(40,167,69,0.2){% else %}rgba(102,252,241,0.2){% endif %}; color: {% if order.status == 'pending' %}var(--warning){% elif order.status == 'shipped' %}var(--success){% else %}var(--accent-blue){% endif %};">
+                        {{ order.status | upper }}
+                    </span>
+                </td>
+                <td style="padding: 12px; display: flex; gap: 5px;">
+                    {% if order.status == 'pending' %}
+                    <form method="POST" action="{{ url_for('supplier.order_action', id=order.id) }}" style="display:inline; display: flex; flex-direction: column; gap: 5px;">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                        <div style="display: flex; gap: 5px;">
+                            <select name="destination" class="btn btn-outline" style="padding: 5px; height: 28px;" required>
+                                <option value="">--Destination--</option>
+                                <option value="Adamawa">Adamawa</option>
+                                <option value="Centre (Yaounde)">Centre (Yaounde)</option>
+                                <option value="East (Bertoua)">East (Bertoua)</option>
+                                <option value="Far North">Far North</option>
+                                <option value="Littoral">Littoral</option>
+                                <option value="North">North</option>
+                                <option value="Northwest (Bamenda)">Northwest (Bamenda)</option>
+                                <option value="South">South</option>
+                                <option value="Southwest">Southwest</option>
+                                <option value="West">West</option>
+                            </select>
+                            <input type="date" name="delivery_date" class="btn btn-outline" style="padding: 5px; height: 28px;" required>
+                        </div>
+                        <div style="display: flex; gap: 5px;">
+                            <button type="submit" name="action" value="accept" class="btn btn-primary" style="padding: 5px 10px; font-size: 0.8rem;">Accept</button>
+                            <button type="submit" name="action" value="reject" class="btn btn-outline" style="padding: 5px 10px; font-size: 0.8rem; border-color: var(--danger); color: var(--danger);" formnovalidate>Drop</button>
+                        </div>
+                    </form>
+                    {% elif order.status == 'processing' %}
+                    <div style="display: flex; flex-direction: column; gap: 5px;">
+                        <span style="font-size: 0.8rem; color: var(--text-light);">To: {{ order.destination }} | On: {{ order.delivery_date }}</span>
+                        <form method="POST" action="{{ url_for('supplier.order_ship', id=order.id) }}" style="display:inline; display: flex; gap: 5px;">
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                            <input type="text" name="tracking_number" placeholder="Tracking #" required class="btn btn-outline" style="padding: 5px; height: 28px;">
+                            <button type="submit" class="btn btn-primary" style="padding: 5px 10px; font-size: 0.8rem; background: var(--success); border-color: var(--success);">Mark Shipped</button>
+                        </form>
+                    </div>
+                    {% elif order.status == 'shipped' %}
+                    <div style="display: flex; flex-direction: column; gap: 5px;">
+                        <span style="font-size: 0.8rem; color: var(--text-light);">To: {{ order.destination }} | On: {{ order.delivery_date }}</span>
+                        <span style="font-size: 0.8rem; color: var(--text-light);">Tracking: {{ order.tracking_number }}</span>
+                    </div>
+                    {% elif order.status == 'rejected' %}
+                    <span style="font-size: 0.8rem; color: var(--danger);">Dropped</span>
+                    {% endif %}
+                </td>
+            </tr>
+            {% else %}
+            <tr><td colspan="6" style="padding: 20px; text-align: center;">No orders found.</td></tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+<div id="new-order-toast" style="display: none; position: fixed; bottom: 20px; right: 20px; background: var(--accent-blue, #66FCF1); color: #0b0c10; padding: 15px 20px; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.3); z-index: 1000; font-weight: bold; cursor: pointer;" onclick="document.getElementById('new-order-toast').style.display='none'">
+    New order received! Latest orders refreshed below.
+</div>
+
+<script>
+    function updateLiveOrders(data) {
+        const countElement = document.getElementById('pending-order-count');
+        const listElement = document.getElementById('live-orders-list');
+        const toastElement = document.getElementById('new-order-toast');
+
+        if (!countElement || !listElement) {
+            return;
+        }
+
+        countElement.innerText = data.count;
+
+        listElement.innerHTML = '';
+        if (!data.orders || data.orders.length === 0) {
+            const item = document.createElement('li');
+            item.style.opacity = '0.8';
+            item.innerText = 'No recent admin orders yet.';
+            listElement.appendChild(item);
+        } else {
+            data.orders.slice(0, 5).forEach(order => {
+                const item = document.createElement('li');
+                item.style.marginBottom = '8px';
+                item.innerHTML = `#${order.id} — ${order.product_name} × ${order.quantity} <span style="color: var(--warning);">${order.status.toUpperCase()}</span>`;
+                listElement.appendChild(item);
+            });
+        }
+
+        if (data.new_order) {
+            toastElement.style.display = 'block';
+            setTimeout(() => { toastElement.style.display = 'none'; }, 6000);
+        }
+    }
+
+    let lastOrderCount = {{ orders|selectattr('status', 'equalto', 'pending')|list|length }};
+
+    function getStatusStyle(status) {
+        const styles = {
+            'pending': { bg: 'rgba(255,193,7,0.2)', color: 'var(--warning)' },
+            'processing': { bg: 'rgba(102,252,241,0.2)', color: 'var(--accent-blue)' },
+            'shipped': { bg: 'rgba(40,167,69,0.2)', color: 'var(--success)' },
+            'rejected': { bg: 'rgba(220,53,69,0.2)', color: 'var(--danger)' }
+        };
+        return styles[status] || styles['pending'];
+    }
+
+    function pollOrders() {
+        fetch("{{ url_for('supplier.api_pending_orders') }}")
+            .then(response => response.json())
+            .then(data => {
+                if (!data.orders) {
+                    return;
+                }
+
+                const newCount = data.count;
+                const newOrder = newCount > lastOrderCount;
+                updateLiveOrders({ ...data, new_order: newOrder });
+                lastOrderCount = newCount;
+            })
+            .catch(err => console.error('Error fetching live orders:', err));
+
+        // Also refresh the full orders table
+        fetch("{{ url_for('supplier.api_all_orders') }}")
+            .then(r => r.json())
+            .then(data => {
+                const tbody = document.getElementById('order-table-body');
+                if (!tbody || !data.orders) return;
+
+                const currentDataString = JSON.stringify(data.orders);
+                if (window.lastOrdersString === currentDataString) return;
+                window.lastOrdersString = currentDataString;
+
+                tbody.innerHTML = '';
+                if (data.orders.length === 0) {
+                    tbody.innerHTML = '<tr><td colspan="6" style="padding: 20px; text-align: center;">No orders found.</td></tr>';
+                    return;
+                }
+
+                data.orders.forEach(order => {
+                    const style = getStatusStyle(order.status);
+                    const tr = document.createElement('tr');
+                    tr.setAttribute('data-order-id', order.id);
+                    tr.style.borderBottom = '1px solid var(--border-color)';
+
+                    let actionHtml = '';
+                    if (order.status === 'pending') {
+                        actionHtml = `
+                            <form method="POST" action="/supplier/order/${order.id}/action" style="display:inline; display: flex; flex-direction: column; gap: 5px;">
+                                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                <div style="display: flex; gap: 5px;">
+                                    <select name="destination" class="btn btn-outline" style="padding: 5px; height: 28px;" required>
+                                        <option value="">--Destination--</option>
+                                        <option value="Adamawa">Adamawa</option>
+                                        <option value="Centre (Yaounde)">Centre (Yaounde)</option>
+                                        <option value="East (Bertoua)">East (Bertoua)</option>
+                                        <option value="Far North">Far North</option>
+                                        <option value="Littoral">Littoral</option>
+                                        <option value="North">North</option>
+                                        <option value="Northwest (Bamenda)">Northwest (Bamenda)</option>
+                                        <option value="South">South</option>
+                                        <option value="Southwest">Southwest</option>
+                                        <option value="West">West</option>
+                                    </select>
+                                    <input type="date" name="delivery_date" class="btn btn-outline" style="padding: 5px; height: 28px;" required>
+                                </div>
+                                <div style="display: flex; gap: 5px;">
+                                    <button type="submit" name="action" value="accept" class="btn btn-primary" style="padding: 5px 10px; font-size: 0.8rem;">Accept</button>
+                                    <button type="submit" name="action" value="reject" class="btn btn-outline" style="padding: 5px 10px; font-size: 0.8rem; border-color: var(--danger); color: var(--danger);" formnovalidate>Drop</button>
+                                </div>
+                            </form>`;
+                    } else if (order.status === 'processing') {
+                        actionHtml = `
+                            <div style="display: flex; flex-direction: column; gap: 5px;">
+                                <span style="font-size: 0.8rem; color: var(--text-light);">To: ${order.destination} | On: ${order.delivery_date}</span>
+                                <form method="POST" action="/supplier/order/${order.id}/ship" style="display:inline; display: flex; gap: 5px;">
+                                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                    <input type="text" name="tracking_number" placeholder="Tracking #" required class="btn btn-outline" style="padding: 5px; height: 28px;">
+                                    <button type="submit" class="btn btn-primary" style="padding: 5px 10px; font-size: 0.8rem; background: var(--success); border-color: var(--success);">Mark Shipped</button>
+                                </form>
+                            </div>`;
+                    } else if (order.status === 'shipped') {
+                        actionHtml = `
+                            <div style="display: flex; flex-direction: column; gap: 5px;">
+                                <span style="font-size: 0.8rem; color: var(--text-light);">To: ${order.destination} | On: ${order.delivery_date}</span>
+                                <span style="font-size: 0.8rem; color: var(--text-light);">Tracking: ${order.tracking_number || '-'}</span>
+                            </div>`;
+                    } else if (order.status === 'rejected') {
+                        actionHtml = `<span style="font-size: 0.8rem; color: var(--danger);">Dropped</span>`;
+                    }
+
+                    tr.innerHTML = `
+                        <td style="padding: 12px;">#${order.id}</td>
+                        <td style="padding: 12px;">${order.timestamp}</td>
+                        <td style="padding: 12px;">${order.product_name}</td>
+                        <td style="padding: 12px;">${order.quantity}</td>
+                        <td style="padding: 12px;">
+                            <span class="order-status-tag" style="padding: 3px 8px; border-radius: 4px; font-size: 0.8rem; background: ${style.bg}; color: ${style.color};">
+                                ${order.status.toUpperCase()}
+                            </span>
+                        </td>
+                        <td style="padding: 12px; display: flex; gap: 5px;">
+                            ${actionHtml}
+                        </td>
+                    `;
+                    tbody.appendChild(tr);
+                });
+            })
+            .catch(err => console.error('Table refresh error:', err));
+    }
+
+    setInterval(pollOrders, 5000);
+</script>
+{% endblock %}

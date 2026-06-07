@@ -1,0 +1,73 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div style="display: flex; justify-content: center; align-items: center; min-height: calc(100vh - 100px); background: radial-gradient(circle at center, rgba(102, 252, 241, 0.05), #000000); margin: -30px;">
+    <div class="hub-card animate-fade" style="width: 100%; max-width: 400px; padding: 40px; background: linear-gradient(145deg, #0b0c10, #000000); box-shadow: 0 0 50px rgba(102, 252, 241, 0.5), inset 0 0 30px rgba(0, 0, 0, 0.9); border: 1px solid rgba(102, 252, 241, 0.6);">
+        <div style="display: flex; border-bottom: 1px solid rgba(102, 252, 241, 0.3); margin-bottom: 25px;">
+            <div id="tab-admin" style="flex: 1; text-align: center; padding: 10px; cursor: pointer; color: var(--accent-blue); border-bottom: 2px solid var(--accent-blue); font-weight: bold;">Admin / User</div>
+            <div id="tab-supplier" style="flex: 1; text-align: center; padding: 10px; cursor: pointer; color: var(--text-primary); border-bottom: 2px solid transparent;">Supplier</div>
+        </div>
+        <h2 id="login-title" style="text-align: center; color: var(--text-light); margin-bottom: 30px;">System Login</h2>
+        <form method="POST" action="">
+            {{ form.hidden_tag() }}
+            <div style="margin-bottom: 20px;">
+                <label style="display: block; margin-bottom: 8px; color: var(--text-primary);">Email</label>
+                {{ form.email(class="btn btn-outline", style="width: 100%; text-align: left; background: rgba(0,0,0,0.2); cursor: text;") }}
+                {% for error in form.email.errors %}
+                    <span style="color: var(--danger); font-size: 0.8rem;">{{ error }}</span>
+                {% endfor %}
+            </div>
+            <div style="margin-bottom: 20px;">
+                <label style="display: block; margin-bottom: 8px; color: var(--text-primary);">Password</label>
+                {{ form.password(class="btn btn-outline", style="width: 100%; text-align: left; background: rgba(0,0,0,0.2); cursor: text;") }}
+                {% for error in form.password.errors %}
+                    <span style="color: var(--danger); font-size: 0.8rem;">{{ error }}</span>
+                {% endfor %}
+            </div>
+            <div style="margin-bottom: 20px; display: flex; align-items: center; gap: 10px;">
+                {{ form.remember_me() }}
+                <label style="color: var(--text-primary); font-size: 0.9rem;">Remember Me</label>
+            </div>
+            <div style="margin-top: 30px;">
+                {{ form.submit(class="btn btn-primary", style="width: 100%;") }}
+            </div>
+            <div style="margin-top: 20px; text-align: center;">
+                <p style="color: var(--text-primary); font-size: 0.9rem;">Don't have an account? <a href="{{ url_for('auth.register') }}" style="color: var(--accent-blue);">Register</a></p>
+                <p style="color: var(--text-primary); font-size: 0.9rem;"><a href="{{ url_for('auth.reset_password') }}" style="color: var(--accent-blue);">Forgot your password?</a></p>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+    document.addEventListener("DOMContentLoaded", function() {
+        const tabAdmin = document.getElementById('tab-admin');
+        const tabSupplier = document.getElementById('tab-supplier');
+        const loginTitle = document.getElementById('login-title');
+        
+        tabAdmin.addEventListener('click', function() {
+            tabAdmin.style.color = 'var(--accent-blue)';
+            tabAdmin.style.borderBottom = '2px solid var(--accent-blue)';
+            tabAdmin.style.fontWeight = 'bold';
+            
+            tabSupplier.style.color = 'var(--text-primary)';
+            tabSupplier.style.borderBottom = '2px solid transparent';
+            tabSupplier.style.fontWeight = 'normal';
+            
+            loginTitle.innerText = "System Login";
+        });
+        
+        tabSupplier.addEventListener('click', function() {
+            tabSupplier.style.color = 'var(--accent-blue)';
+            tabSupplier.style.borderBottom = '2px solid var(--accent-blue)';
+            tabSupplier.style.fontWeight = 'bold';
+            
+            tabAdmin.style.color = 'var(--text-primary)';
+            tabAdmin.style.borderBottom = '2px solid transparent';
+            tabAdmin.style.fontWeight = 'normal';
+            
+            loginTitle.innerText = "Supplier Portal Login";
+        });
+    });
+</script>
+{% endblock %}

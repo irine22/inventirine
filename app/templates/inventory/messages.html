@@ -1,0 +1,35 @@
+{% extends 'base.html' %}
+
+{% block page_title %}Admin Inbox{% endblock %}
+
+{% block content %}
+<div class="animate-fade">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+        <h2 style="color: var(--text-light);">Messages</h2>
+    </div>
+
+    <div class="hub-card" style="padding: 20px;">
+        {% if messages %}
+            <ul style="list-style: none; padding: 0; margin: 0;">
+                {% for msg in messages %}
+                <li style="border-bottom: 1px solid var(--border-color); padding: 15px 0; {% if not msg.is_read %}background: rgba(102, 252, 241, 0.05); border-left: 4px solid var(--accent-blue); padding-left: 15px;{% endif %}">
+                    <div style="display: flex; justify-content: space-between; margin-bottom: 10px;">
+                        <strong style="color: {% if not msg.is_read %}var(--text-light){% else %}var(--text-primary){% endif %};">{{ msg.subject }}</strong>
+                        <span style="font-size: 0.85rem; color: var(--text-secondary);">{{ msg.timestamp.strftime('%Y-%m-%d %H:%M') }}</span>
+                    </div>
+                    <p style="color: var(--text-primary); font-size: 0.95rem; margin-bottom: 10px; white-space: pre-wrap;">{{ msg.body }}</p>
+                    {% if not msg.is_read %}
+                    <form action="{{ url_for('inventory.mark_message_read', id=msg.id) }}" method="POST" style="margin: 0; text-align: right;">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                        <button type="submit" class="btn btn-outline" style="font-size: 0.8rem; padding: 4px 10px;">Mark as Read</button>
+                    </form>
+                    {% endif %}
+                </li>
+                {% endfor %}
+            </ul>
+        {% else %}
+            <p style="color: var(--text-secondary); text-align: center; padding: 20px;">No messages in your inbox.</p>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

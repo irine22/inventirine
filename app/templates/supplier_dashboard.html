@@ -1,0 +1,38 @@
+{% extends 'base.html' %}
+
+{% block page_title %}Supplier Dashboard{% endblock %}
+
+{% block content %}
+<div style="background: url('{{ url_for('static', filename='img/warehouse_shelves.jpg') }}') center/cover no-repeat fixed; margin: -30px; padding: 30px; min-height: calc(100vh - 80px); position: relative;">
+    <div style="position: absolute; top:0; left:0; right:0; bottom:0; background: rgba(11, 12, 16, 0.82); z-index: 0;"></div>
+    <div class="dashboard-grid animate-fade" style="position: relative; z-index: 1;">
+        <div class="hub-card">
+            <div class="hub-header">
+                <h3>My Products</h3>
+            </div>
+            <div class="hub-content">Manage Offerings</div>
+            <div class="hub-sub" style="color: var(--accent-blue);">View and update your catalog</div>
+            <div class="hub-details open" style="margin-top: 15px;">
+                <p style="color: var(--text-primary); font-size: 0.9rem;">
+                    Keep your product stock and pricing up to date.
+                </p>
+                <a href="{{ url_for('supplier.products') }}" class="btn btn-outline" style="width: 100%; margin-top: 10px; display: block; text-align: center; text-decoration: none;">View Products</a>
+            </div>
+        </div>
+
+        <div class="hub-card">
+            <div class="hub-header">
+                <h3>Pending Orders</h3>
+            </div>
+            <div class="hub-content">Fulfillment</div>
+            <div class="hub-sub" style="color: var(--warning);">Orders awaiting action</div>
+            <div class="hub-details open" style="margin-top: 15px;">
+                <p style="color: var(--text-primary); font-size: 0.9rem;">
+                    Process new inventory requests from the IMS.
+                </p>
+                <a href="{{ url_for('supplier.orders') }}" class="btn btn-outline" style="width: 100%; margin-top: 10px; display: block; text-align: center; text-decoration: none;">View Orders</a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

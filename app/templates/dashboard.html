@@ -1,0 +1,180 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div style="background: url('{{ url_for('static', filename='img/dashboard_bg.png') }}') center/cover no-repeat; margin: -30px; padding: 30px; min-height: calc(100vh - 80px); position: relative;">
+    <div style="position: absolute; top:0; left:0; right:0; bottom:0; background: rgba(11, 12, 16, 0.85); z-index: 0;"></div>
+    <div class="dashboard-grid animate-fade" style="position: relative; z-index: 1;">
+    
+    <!-- Hub 1: Total Products -->
+    <div class="hub-card">
+        <div class="hub-header">
+            <h3>Total Products</h3>
+            <label class="toggle-switch">
+                <input type="checkbox" class="hub-toggle" data-target="details-products">
+                <span class="slider"></span>
+            </label>
+        </div>
+        <div class="hub-content">{{ products_count }}</div>
+        <div class="hub-sub" style="color: var(--success);">Real-time Database Stock</div>
+        
+        <div class="hub-details" id="details-products">
+            <p style="color: var(--text-primary); font-size: 0.9rem; line-height: 1.6;">
+                <strong style="color: var(--accent-blue);">Categories Breakdown:</strong><br>
+                {% for cat, count in categories.items() %}
+                <span style="display: flex; justify-content: space-between; margin-top: 5px;">
+                    <span>{{ cat }}:</span>
+                    <span style="color: var(--text-light); font-weight: 600;">{{ count }}</span>
+                </span>
+                {% else %}
+                <span style="color: var(--warning);">No products categorized.</span>
+                {% endfor %}
+            </p>
+        </div>
+    </div>
+
+    <!-- Hub 2: Low-Stock Alerts -->
+    <div class="hub-card">
+        <div class="hub-header">
+            <h3>Low Stock</h3>
+            <label class="toggle-switch">
+                <input type="checkbox" class="hub-toggle" data-target="details-stock">
+                <span class="slider"></span>
+            </label>
+        </div>
+        <div class="hub-content" style="color: var(--danger);">{{ low_stock_products|length }}</div>
+        <div class="hub-sub" style="color: var(--warning);">Requires immediate attention</div>
+        
+        <div class="hub-details" id="details-stock">
+            <ul style="color: var(--text-primary); font-size: 0.9rem; list-style: none; padding-top: 10px;">
+                {% for p in low_stock_products %}
+                <li style="margin-bottom: 8px; display: flex; justify-content: space-between; align-items: center;">
+                    <span>{{ p.name }} ({{ p.sku }})</span>
+                    <span style="color: var(--danger); font-weight: 600;">{{ p.quantity }} left</span>
+                </li>
+                {% else %}
+                <li style="color: var(--success);">All products are fully stocked!</li>
+                {% endfor %}
+            </ul>
+            <a href="{{ url_for('inventory.order_stock') }}" class="btn btn-outline" style="margin-top: 15px; width: 100%; padding: 8px; display: block; text-align: center; text-decoration: none;">Order Stock</a>
+        </div>
+    </div>
+
+    <!-- Hub 3: Total Sales -->
+    <div class="hub-card">
+        <div class="hub-header">
+            <h3>Total Sales</h3>
+            <label class="toggle-switch">
+                <input type="checkbox" class="hub-toggle" data-target="details-sales">
+                <span class="slider"></span>
+            </label>
+        </div>
+        <div class="hub-content" id="sales-amount" style="cursor: pointer;" data-value="{{ "{:,.0f}".format(total_sales_value) }} FCFA" onclick="revealSales()">******** FCFA</div>
+        <div class="hub-sub" style="color: var(--success);">System Cumulative Revenue</div>
+        
+        <div class="hub-details" id="details-sales">
+            <p style="color: var(--text-primary); font-size: 0.9rem; line-height: 1.6;">
+                <strong style="color: var(--accent-blue);">Recent Transactions:</strong><br>
+                {% for sale in recent_sales %}
+                <span style="display: flex; justify-content: space-between; margin-top: 5px;">
+                    <span>{{ sale.product.name }} (x{{ sale.quantity_sold }}):</span>
+                    <span style="color: var(--text-light); font-weight: 600;" class="masked-sale" data-value="{{ (sale.quantity_sold * sale.sale_price) | int }} FCFA">******** FCFA</span>
+                </span>
+                {% else %}
+                <span style="color: var(--text-primary); font-style: italic;">No sales recorded yet.</span>
+                {% endfor %}
+            </p>
+        </div>
+    </div>
+
+    <!-- Hub 4: Active Suppliers -->
+    <div class="hub-card">
+        <div class="hub-header">
+            <h3>Suppliers</h3>
+            <label class="toggle-switch">
+                <input type="checkbox" class="hub-toggle" data-target="details-suppliers">
+                <span class="slider"></span>
+            </label>
+        </div>
+        <div class="hub-content">{{ suppliers_count }}</div>
+        <div class="hub-sub">Active Vendor Relationships</div>
+        
+        <div class="hub-details" id="details-suppliers">
+            <p style="color: var(--text-primary); font-size: 0.9rem;">
+                Primary Supplier: GlobalTech Solutions<br>
+                Vendor Directory Verified
+            </p>
+            <a href="{{ url_for('inventory.admin_db') }}" class="btn btn-outline" style="margin-top: 15px; width: 100%; padding: 8px; display: block; text-align: center; text-decoration: none;">View Vendors</a>
+        </div>
+    </div>
+
+    <!-- Hub 5: Database Connection (Admin Only) -->
+    {% if current_user.role == 'admin' %}
+    <div class="hub-card">
+        <div class="hub-header">
+            <h3>Database Hub</h3>
+            <label class="toggle-switch">
+                <input type="checkbox" class="hub-toggle" data-target="details-db">
+                <span class="slider"></span>
+            </label>
+        </div>
+        <div class="hub-content" style="color: var(--accent-blue);">Active</div>
+        <div class="hub-sub">PostgreSQL (inventary_db)</div>
+        
+        <div class="hub-details" id="details-db">
+            <p style="color: var(--text-primary); font-size: 0.9rem;">
+                Connection: PostgreSQL Server<br>
+                Status: Operational
+            </p>
+            <a href="{{ url_for('inventory.admin_db') }}" class="btn btn-primary" style="margin-top: 10px; width: 100%; padding: 8px; display: block; text-align: center; text-decoration: none;">Manage Database</a>
+        </div>
+    </div>
+    {% endif %}
+
+</div>
+
+<style>
+    /* Inline tweak for mobile menu button visibility */
+    @media (max-width: 768px) {
+        #menuBtn {
+            display: block !important;
+        }
+    }
+</style>
+
+<script>
+    function revealSales() {
+        let password = prompt("Please enter the admin password to view total finances:");
+        if (password) {
+            fetch('{{ url_for("auth.api_verify_password") }}', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': '{{ csrf_token() }}'
+                },
+                body: JSON.stringify({password: password})
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    const salesAmount = document.getElementById('sales-amount');
+                    salesAmount.innerText = salesAmount.getAttribute('data-value');
+                    salesAmount.style.cursor = 'default';
+                    salesAmount.onclick = null;
+                    
+                    const maskedSales = document.querySelectorAll('.masked-sale');
+                    maskedSales.forEach(el => {
+                        el.innerText = el.getAttribute('data-value');
+                    });
+                } else {
+                    alert(data.message || "Incorrect password!");
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert("An error occurred while verifying the password.");
+            });
+        }
+    }
+</script>
+</div>
+{% endblock %}

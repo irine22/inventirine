@@ -1,0 +1,108 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="animate-fade">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 30px;">
+        <h2 style="color: var(--text-light);">Database Management Hub</h2>
+        <div style="background: rgba(102, 252, 241, 0.1); padding: 8px 15px; border-radius: 20px; border: 1px solid var(--accent-blue); color: var(--accent-blue); font-size: 0.8rem;">
+            Connected: PostgreSQL (inventary_db)
+        </div>
+    </div>
+
+    <!-- Tables Grid -->
+    <div style="display: flex; flex-direction: column; gap: 30px;">
+        
+        <!-- Products Table -->
+        <div class="hub-card">
+            <h3 style="color: var(--accent-blue); margin-bottom: 20px;">Products Table</h3>
+            <div style="overflow-x: auto;">
+                <table style="width: 100%; border-collapse: collapse; color: var(--text-primary); font-size: 0.9rem;">
+                    <thead>
+                        <tr style="text-align: left; border-bottom: 1px solid var(--border-color);">
+                            <th style="padding: 12px;">ID</th>
+                            <th style="padding: 12px;">Name</th>
+                            <th style="padding: 12px;">SKU</th>
+                            <th style="padding: 12px;">Price</th>
+                            <th style="padding: 12px;">Stock</th>
+                            <th style="padding: 12px; text-align: right;">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for p in products %}
+                        <tr style="border-bottom: 1px solid rgba(255,255,255,0.05); {% if p.is_deleted %}opacity: 0.6;{% endif %}">
+                            <td style="padding: 12px;">{{ p.id }}</td>
+                            <td style="padding: 12px; color: var(--text-light);">{{ p.name }} {% if p.is_deleted %}<span style="color:var(--danger); font-size:0.75rem;">(Deleted)</span>{% endif %}</td>
+                            <td style="padding: 12px;">{{ p.sku }}</td>
+                            <td style="padding: 12px;">{{ p.unit_price }} FCFA</td>
+                            <td style="padding: 12px;">{{ p.quantity }}</td>
+                            <td style="padding: 12px; text-align: right; display: flex; justify-content: flex-end; gap: 10px;">
+                                <a href="{{ url_for('inventory.edit_product', id=p.id) }}" class="btn" style="background: var(--accent-blue); padding: 4px 10px; border-radius: 4px; color: white; text-decoration: none; font-size: 0.8rem;">Edit</a>
+                                {% if p.is_deleted %}
+                                <form action="{{ url_for('inventory.retrieve_product', id=p.id) }}" method="POST" style="margin: 0;">
+                                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                    <button type="submit" class="btn" style="background: var(--success); padding: 4px 10px; border-radius: 4px; color: white; border: none; cursor: pointer; font-size: 0.8rem;">Retrieve</button>
+                                </form>
+                                {% else %}
+                                <form action="{{ url_for('inventory.delete_product', id=p.id) }}" method="POST" onsubmit="return confirm('Are you sure you want to soft-delete this product?');" style="margin: 0;">
+                                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                    <button type="submit" class="btn" style="background: var(--danger); padding: 4px 10px; border-radius: 4px; color: white; border: none; cursor: pointer; font-size: 0.8rem;">Delete</button>
+                                </form>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Users Table -->
+        <div class="hub-card">
+            <h3 style="color: var(--accent-blue); margin-bottom: 20px;">Registered Users</h3>
+            <div style="overflow-x: auto;">
+                <table style="width: 100%; border-collapse: collapse; color: var(--text-primary); font-size: 0.9rem;">
+                    <thead>
+                        <tr style="text-align: left; border-bottom: 1px solid var(--border-color);">
+                            <th style="padding: 12px;">ID</th>
+                            <th style="padding: 12px;">Username</th>
+                            <th style="padding: 12px;">Email</th>
+                            <th style="padding: 12px;">Role</th>
+                            <th style="padding: 12px; text-align: right;">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for u in users %}
+                        <tr style="border-bottom: 1px solid rgba(255,255,255,0.05); {% if u.is_deleted %}opacity: 0.6;{% endif %}">
+                            <td style="padding: 12px;">{{ u.id }}</td>
+                            <td style="padding: 12px; color: var(--text-light);">{{ u.username }} {% if u.is_deleted %}<span style="color:var(--danger); font-size:0.75rem;">(Deleted)</span>{% endif %}</td>
+                            <td style="padding: 12px;">{{ u.email }}</td>
+                            <td style="padding: 12px;"><span style="background: rgba(102, 252, 241, 0.1); padding: 2px 8px; border-radius: 4px;">{{ u.role }}</span></td>
+                            <td style="padding: 12px; text-align: right;">
+                                <div style="display: flex; gap: 5px; justify-content: flex-end;">
+                                    {% if u.is_deleted %}
+                                    <form action="{{ url_for('inventory.retrieve_user', id=u.id) }}" method="POST" style="margin: 0;">
+                                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                        <button type="submit" class="btn" style="background: var(--success); padding: 4px 10px; border-radius: 4px; color: white; border: none; cursor: pointer; font-size: 0.8rem;">Retrieve</button>
+                                    </form>
+                                    {% else %}
+                                    <form action="{{ url_for('inventory.delete_user', id=u.id) }}" method="POST" onsubmit="return confirm('Are you sure you want to suspend this user?');" style="margin: 0;">
+                                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                        <button type="submit" class="btn" style="background: var(--warning); padding: 4px 10px; border-radius: 4px; color: #000; border: none; cursor: pointer; font-size: 0.8rem;" {% if u.email == 'bright12@gmail.com' %}disabled style="opacity: 0.5;"{% endif %}>Suspend</button>
+                                    </form>
+                                    {% endif %}
+                                    <form action="{{ url_for('inventory.hard_delete_user', id=u.id) }}" method="POST" onsubmit="return confirm('WARNING: This will completely and permanently delete this user AND ALL associated data (products, orders, logs). This cannot be undone. Are you absolutely sure?');" style="margin: 0;">
+                                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                        <button type="submit" class="btn" style="background: var(--danger); padding: 4px 10px; border-radius: 4px; color: white; border: none; cursor: pointer; font-size: 0.8rem;" {% if u.email == 'bright12@gmail.com' %}disabled style="opacity: 0.5;"{% endif %}>Hard Delete</button>
+                                    </form>
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+    </div>
+</div>
+{% endblock %}

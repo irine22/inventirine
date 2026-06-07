@@ -1,0 +1,166 @@
+{% extends 'base.html' %}
+{% block page_title %}Order Status Tracking{% endblock %}
+{% block content %}
+<div class="animate-fade" style="padding: 20px;">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+        <h2>Placed Orders</h2>
+        <div style="display: flex; align-items: center; gap: 12px;">
+            <span id="live-indicator" style="display: inline-flex; align-items: center; gap: 6px; padding: 5px 14px; border-radius: 20px; background: rgba(40,167,69,0.15); border: 1px solid rgba(40,167,69,0.3);">
+                <span style="width: 8px; height: 8px; border-radius: 50%; background: var(--success); display: inline-block; box-shadow: 0 0 6px var(--success); animation: pulse 2s infinite;"></span>
+                <span style="color: var(--success); font-size: 0.78rem; font-weight: 600;">Live Updates</span>
+            </span>
+            <span style="color: var(--text-secondary); font-size: 0.8rem;" id="last-refresh">Updated just now</span>
+        </div>
+    </div>
+
+    <!-- Summary Cards -->
+    <div style="display: flex; flex-wrap: wrap; gap: 15px; margin-bottom: 25px;">
+        <div style="flex: 1; min-width: 150px; padding: 15px; border: 1px solid var(--border-color); border-radius: 12px; background: rgba(10,13,18,0.85);">
+            <div style="font-size: 0.8rem; color: var(--text-secondary); margin-bottom: 5px;">Total Orders</div>
+            <div style="font-size: 1.8rem; color: var(--accent-blue);" id="total-count">{{ orders|length }}</div>
+        </div>
+        <div style="flex: 1; min-width: 150px; padding: 15px; border: 1px solid rgba(255,193,7,0.3); border-radius: 12px; background: rgba(10,13,18,0.85);">
+            <div style="font-size: 0.8rem; color: var(--text-secondary); margin-bottom: 5px;">Pending</div>
+            <div style="font-size: 1.8rem; color: var(--warning);" id="pending-count">{{ orders|selectattr('status', 'equalto', 'pending')|list|length }}</div>
+        </div>
+        <div style="flex: 1; min-width: 150px; padding: 15px; border: 1px solid rgba(102,252,241,0.3); border-radius: 12px; background: rgba(10,13,18,0.85);">
+            <div style="font-size: 0.8rem; color: var(--text-secondary); margin-bottom: 5px;">Processing</div>
+            <div style="font-size: 1.8rem; color: var(--accent-blue);" id="processing-count">{{ orders|selectattr('status', 'equalto', 'processing')|list|length }}</div>
+        </div>
+        <div style="flex: 1; min-width: 150px; padding: 15px; border: 1px solid rgba(40,167,69,0.3); border-radius: 12px; background: rgba(10,13,18,0.85);">
+            <div style="font-size: 0.8rem; color: var(--text-secondary); margin-bottom: 5px;">Shipped</div>
+            <div style="font-size: 1.8rem; color: var(--success);" id="shipped-count">{{ orders|selectattr('status', 'equalto', 'shipped')|list|length }}</div>
+        </div>
+    </div>
+
+    <table style="width: 100%; border-collapse: collapse; background: rgba(31,40,51,0.5); border: 1px solid var(--border-color); color: var(--text-primary); margin-top: 20px;">
+        <thead>
+            <tr style="border-bottom: 1px solid var(--border-color); background: rgba(0,0,0,0.2);">
+                <th style="padding: 12px; text-align: left;">Order ID</th>
+                <th style="padding: 12px; text-align: left;">Date</th>
+                <th style="padding: 12px; text-align: left;">Product</th>
+                <th style="padding: 12px; text-align: left;">Quantity</th>
+                <th style="padding: 12px; text-align: left;">Supplier</th>
+                <th style="padding: 12px; text-align: left;">Status</th>
+                <th style="padding: 12px; text-align: left;">Tracking</th>
+            </tr>
+        </thead>
+        <tbody id="orders-table-body">
+            {% for order in orders %}
+            <tr style="border-bottom: 1px solid var(--border-color);">
+                <td style="padding: 12px;">#{{ order.id }}</td>
+                <td style="padding: 12px;">{{ order.timestamp.strftime('%Y-%m-%d %H:%M') }}</td>
+                <td style="padding: 12px;">{{ order.product.name }}</td>
+                <td style="padding: 12px;">{{ order.quantity }}</td>
+                <td style="padding: 12px;">
+                    {% if order.supplier %}{{ order.supplier.username }}{% else %}ID: {{ order.supplier_id }}{% endif %}
+                </td>
+                <td style="padding: 12px;">
+                    <span style="padding: 3px 8px; border-radius: 4px; font-size: 0.8rem; background: {% if order.status == 'pending' %}rgba(255,193,7,0.2){% elif order.status == 'shipped' %}rgba(40,167,69,0.2){% elif order.status == 'rejected' %}rgba(220,53,69,0.2){% else %}rgba(102,252,241,0.2){% endif %}; color: {% if order.status == 'pending' %}var(--warning){% elif order.status == 'shipped' %}var(--success){% elif order.status == 'rejected' %}var(--danger){% else %}var(--accent-blue){% endif %};">
+                        {{ order.status | upper }}
+                    </span>
+                </td>
+                <td style="padding: 12px;">
+                    {% if order.tracking_number %}
+                        {{ order.tracking_number }}
+                    {% else %}
+                        -
+                    {% endif %}
+                </td>
+            </tr>
+            {% else %}
+            <tr><td colspan="7" style="padding: 20px; text-align: center;">No orders placed yet.</td></tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+<!-- Status update toast -->
+<div id="status-toast" style="display: none; position: fixed; bottom: 20px; right: 20px; background: var(--accent-blue); color: #0b0c10; padding: 15px 20px; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.3); z-index: 1000; font-weight: bold; cursor: pointer;" onclick="this.style.display='none'">
+    Order status updated!
+</div>
+
+<style>
+@keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.4; }
+}
+</style>
+
+<script>
+    let previousOrders = JSON.stringify({{ orders | tojson if orders else '[]' | safe }});
+
+    function getStatusStyle(status) {
+        const styles = {
+            'pending': { bg: 'rgba(255,193,7,0.2)', color: 'var(--warning)' },
+            'processing': { bg: 'rgba(102,252,241,0.2)', color: 'var(--accent-blue)' },
+            'shipped': { bg: 'rgba(40,167,69,0.2)', color: 'var(--success)' },
+            'rejected': { bg: 'rgba(220,53,69,0.2)', color: 'var(--danger)' }
+        };
+        return styles[status] || styles['pending'];
+    }
+
+    function pollAdminOrders() {
+        fetch("{{ url_for('inventory.api_admin_orders') }}")
+            .then(r => r.json())
+            .then(data => {
+                const tbody = document.getElementById('orders-table-body');
+                const currentJson = JSON.stringify(data.orders);
+
+                // Update counters
+                document.getElementById('total-count').textContent = data.count;
+                let pending = 0, processing = 0, shipped = 0;
+                data.orders.forEach(o => {
+                    if (o.status === 'pending') pending++;
+                    else if (o.status === 'processing') processing++;
+                    else if (o.status === 'shipped') shipped++;
+                });
+                document.getElementById('pending-count').textContent = pending;
+                document.getElementById('processing-count').textContent = processing;
+                document.getElementById('shipped-count').textContent = shipped;
+
+                // Only update table if data changed
+                if (currentJson !== previousOrders) {
+                    previousOrders = currentJson;
+
+                    if (data.orders.length === 0) {
+                        tbody.innerHTML = '<tr><td colspan="7" style="padding: 20px; text-align: center;">No orders placed yet.</td></tr>';
+                    } else {
+                        tbody.innerHTML = '';
+                        data.orders.forEach(order => {
+                            const style = getStatusStyle(order.status);
+                            const row = document.createElement('tr');
+                            row.style.borderBottom = '1px solid var(--border-color)';
+                            row.innerHTML = `
+                                <td style="padding: 12px;">#${order.id}</td>
+                                <td style="padding: 12px;">${order.timestamp}</td>
+                                <td style="padding: 12px;">${order.product_name}</td>
+                                <td style="padding: 12px;">${order.quantity}</td>
+                                <td style="padding: 12px;">${order.supplier_name}</td>
+                                <td style="padding: 12px;">
+                                    <span style="padding: 3px 8px; border-radius: 4px; font-size: 0.8rem; background: ${style.bg}; color: ${style.color};">
+                                        ${order.status.toUpperCase()}
+                                    </span>
+                                </td>
+                                <td style="padding: 12px;">${order.tracking_number}</td>
+                            `;
+                            tbody.appendChild(row);
+                        });
+                    }
+
+                    // Show toast
+                    const toast = document.getElementById('status-toast');
+                    toast.style.display = 'block';
+                    setTimeout(() => { toast.style.display = 'none'; }, 4000);
+                }
+
+                // Update timestamp
+                document.getElementById('last-refresh').textContent = 'Updated ' + new Date().toLocaleTimeString();
+            })
+            .catch(err => console.error('Live poll error:', err));
+    }
+
+    // Poll every 5 seconds
+    setInterval(pollAdminOrders, 5000);
+</script>
+{% endblock %}

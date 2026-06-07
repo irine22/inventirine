@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}IMS Dashboard{% endblock %}</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+    
+    <!-- Sidebar -->
+    <aside class="sidebar" id="sidebar">
+        <div class="brand">
+            <span>IMS</span>
+        </div>
+        <ul class="nav-links">
+            <li><a href="{{ url_for('inventory.dashboard') }}" class="active">📊 <span>Dashboard</span></a></li>
+            {% if current_user.is_authenticated %}
+            <li><a href="{{ url_for('auth.profile') }}">👤 <span>Profile</span></a></li>
+            {% if current_user.role == 'supplier' %}
+            <li><a href="{{ url_for('supplier.products') }}">📦 <span>My Products</span></a></li>
+            <li><a href="{{ url_for('supplier.orders') }}">📋 <span>Orders</span></a></li>
+            <li><a href="{{ url_for('supplier.movements') }}">🔄 <span>Stock Log</span></a></li>
+            {% else %}
+            <li><a href="{{ url_for('inventory.movements') }}">🔄 <span>Stock Movements</span></a></li>
+            <li><a href="{{ url_for('inventory.reports') }}">📉 <span>Reports</span></a></li>
+            <li><a href="{{ url_for('inventory.order_stock') }}">📦 <span>Order Stock</span></a></li>
+            {% endif %}
+            
+            {% if current_user.role == 'admin' %}
+            <li><a href="{{ url_for('inventory.messages') }}">✉️ <span>Messages</span></a></li>
+            <li><a href="{{ url_for('inventory.admin_db') }}">⚙️ <span>Manage DB</span></a></li>
+            <li><a href="{{ url_for('inventory.activity_logs') }}">📋 <span>Activity Logs</span></a></li>
+            {% endif %}
+            {% endif %}
+        </ul>
+    </aside>
+
+    <!-- Main Content -->
+    <main class="main-content">
+        <header class="top-nav">
+            <div style="display: flex; align-items: center; gap: 15px;">
+                <button id="menuBtn" class="btn btn-outline">☰</button>
+                <h2>{% block page_title %}Dashboard Overview{% endblock %}</h2>
+            </div>
+            <div class="user-info">
+                {% if current_user.is_authenticated %}
+                <span>Welcome, <a href="{{ url_for('auth.profile') }}" style="color: var(--accent-blue); text-decoration: none; font-weight: 600;">{{ current_user.username }}</a></span>
+                <a href="{{ url_for('auth.logout') }}" class="btn btn-primary" style="text-decoration: none;">Logout</a>
+                {% else %}
+                <a href="{{ url_for('auth.login') }}" class="btn btn-primary" style="text-decoration: none;">Login</a>
+                {% endif %}
+            </div>
+        </header>
+
+        {% with messages = get_flashed_messages(with_categories=true) %}
+          {% if messages %}
+            {% for category, message in messages %}
+              <div class="animate-fade" id="flash-{{ loop.index }}" style="padding: 15px 20px; border-radius: 8px; margin-bottom: 15px; display: flex; justify-content: space-between; align-items: center;
+                {% if category == 'success' %}
+                  background: rgba(40,167,69,0.15); border: 1px solid rgba(40,167,69,0.4); color: var(--success);
+                {% elif category == 'warning' %}
+                  background: rgba(255,193,7,0.12); border: 1px solid rgba(255,193,7,0.4); color: var(--warning);
+                {% elif category == 'info' %}
+                  background: rgba(102,252,241,0.1); border: 1px solid rgba(102,252,241,0.3); color: var(--accent-blue);
+                {% else %}
+                  background: rgba(255,76,76,0.12); border: 1px solid rgba(255,76,76,0.4); color: var(--danger);
+                {% endif %}
+              ">
+                <span>{{ message }}</span>
+                <span onclick="this.parentElement.style.display='none'" style="cursor:pointer; opacity:0.7; font-size:1.1rem; margin-left: 15px;">&times;</span>
+              </div>
+            {% endfor %}
+          {% endif %}
+        {% endwith %}
+
+        {% block content %}{% endblock %}
+    </main>
+
+    <script src="{{ url_for('static', filename='js/main.js') }}"></script>
+    <script>
+        document.getElementById('menuBtn').addEventListener('click', function() {
+            document.getElementById('sidebar').classList.toggle('collapsed');
+            document.querySelector('.main-content').classList.toggle('collapsed');
+        });
+    </script>
+</body>
+</html>
