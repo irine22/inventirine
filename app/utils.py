@@ -1,43 +1,34 @@
 import os
-from PIL import Image
+import imghdr
 from werkzeug.utils import secure_filename
 from app.models import AuditLog
 from app import db
 from datetime import datetime, timezone
 
 def is_valid_image(file_stream):
-    """Check image validity using Pillow instead of python-magic."""
-    try:
-        image = Image.open(file_stream)
-        image.verify()
-        valid = image.format in ['JPEG', 'PNG']
-    except Exception:
-        valid = False
-    finally:
-        file_stream.seek(0)
-
-    return valid
+    """Check image validity using stdlib imghdr to avoid Pillow runtime dependencies."""
+    header = file_stream.read(32)
+    file_stream.seek(0)
+    image_type = imghdr.what(None, header)
+    return image_type in ['jpeg', 'png']
 
 def process_and_save_image(file_obj, upload_folder):
-    """Strip EXIF data and save."""
+    """Save a validated image upload without external image libraries."""
     if not is_valid_image(file_obj):
         return None
-    
+
     filename = secure_filename(file_obj.filename)
+    name, _ = os.path.splitext(filename)
+    image_type = imghdr.what(None, file_obj.read(32))
+    file_obj.seek(0)
+    extension = 'jpg' if image_type == 'jpeg' else 'png'
+    filename = f"{name}.{extension}" if name else f"upload.{extension}"
     filepath = os.path.join(upload_folder, filename)
-    
-    image = Image.open(file_obj)
-    
-    # Strip EXIF by copying image data only
-    data = list(image.getdata())
-    image_without_exif = Image.new(image.mode, image.size)
-    image_without_exif.putdata(data)
-    
-    # Save optimized
+
     if not os.path.exists(upload_folder):
-        os.makedirs(upload_folder)
-        
-    image_without_exif.save(filepath)
+        os.makedirs(upload_folder, exist_ok=True)
+
+    file_obj.save(filepath)
     return filename
 
 def log_audit(table_name, record_id, field_name, old_value, new_value, user_id):
