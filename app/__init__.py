@@ -60,4 +60,8 @@ def create_app(config_class=Config):
 
         return response
 
+    # Ensure tables exist when the app starts, including in production WSGI/Gunicorn mode.
+    with app.app_context():
+        db.create_all()
+
     return app
