@@ -1,3 +1,7 @@
 {
-  "$schema": "https://schema.railpack.com"
+  "$schema": "https://schema.railpack.com",
+  "buildAptPackages": ["libmagic-dev"],
+  "deploy": {
+    "aptPackages": ["libmagic1", "libtiff6", "libjpeg62-turbo", "libopenjp2-7", "libwebp7", "zlib1g"]
+  }
 }
