@@ -14,12 +14,13 @@
 
         <form method="POST">
             <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-            <div style="margin-bottom: 20px; text-align: left;">
+            <div class="password-toggle" style="position: relative; margin-bottom: 20px; text-align: left;">
                 <label for="password" style="display: block; color: var(--text-light); margin-bottom: 8px; font-size: 0.9rem;">Supplier Password</label>
                 <input type="password" name="password" id="password" required 
-                       style="width: 100%; padding: 12px; background: rgba(255,255,255,0.05); border: 1px solid var(--border-color); border-radius: 8px; color: var(--text-light); outline: none; transition: border-color 0.3s;"
+                       style="width: 100%; padding: 12px; padding-right: 44px; background: rgba(255,255,255,0.05); border: 1px solid var(--border-color); border-radius: 8px; color: var(--text-light); outline: none; transition: border-color 0.3s;"
                        onfocus="this.style.borderColor='var(--accent-blue)'"
                        onblur="this.style.borderColor='var(--border-color)'">
+                <button type="button" class="toggle-password" aria-label="Show password" style="position: absolute; right: 12px; top: 42px; background: transparent; border: none; color: var(--text-light); cursor: pointer; font-size: 1.1rem;">👁️</button>
             </div>
 
             <button type="submit" class="btn-primary" style="width: 100%; padding: 12px; font-weight: 600;">

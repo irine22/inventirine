@@ -11,11 +11,11 @@ def seed_admin():
         if not admin:
             admin = User(
                 username='Bright Favor',
-                email='brightfav12@gmail.com',
+                email='bright12@gmail.com',
                 role='admin'
             )
             # ⚠ Change this password immediately after first login
-            admin.set_password('BrightFav123@')
+            admin.set_password('Fav123bright@?')
             db.session.add(admin)
             db.session.commit()
             print("Admin user created successfully.")

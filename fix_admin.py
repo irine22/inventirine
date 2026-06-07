@@ -10,7 +10,7 @@ with app.app_context():
         print(f"Unlocked bright12@gmail.com (ID={admin1.id})")
         print(f"  username={admin1.username}")
         print(f"  role={admin1.role}")
-        for pw in ['BrightFav123@', 'admin123', 'password']:
+        for pw in ['Fav123bright@?', 'admin123', 'password']:
             print(f"  check_password('{pw}') = {admin1.check_password(pw)}")
 
     admin2 = User.query.filter_by(email='brightfav12@gmail.com').first()
@@ -18,5 +18,5 @@ with app.app_context():
         print(f"\nAdmin 2: brightfav12@gmail.com (ID={admin2.id})")
         print(f"  username={admin2.username}")
         print(f"  role={admin2.role}")
-        for pw in ['BrightFav123@', 'admin123', 'password']:
+        for pw in ['Fav123bright@?', 'admin123', 'password']:
             print(f"  check_password('{pw}') = {admin2.check_password(pw)}")

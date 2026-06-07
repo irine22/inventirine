@@ -38,6 +38,20 @@ document.addEventListener('DOMContentLoaded', () => {
         alert("Redirecting to Supplier Management Hub...");
     };
 
+    const passwordToggleWrappers = document.querySelectorAll('.password-toggle');
+    passwordToggleWrappers.forEach(wrapper => {
+        const input = wrapper.querySelector('input[type="password"], input[type="text"]');
+        const button = wrapper.querySelector('.toggle-password');
+        if (!input || !button) return;
+
+        button.addEventListener('click', () => {
+            const showing = input.type === 'text';
+            input.type = showing ? 'password' : 'text';
+            button.textContent = showing ? '👁️' : '🙈';
+            button.setAttribute('aria-label', showing ? 'Show password' : 'Hide password');
+        });
+    });
+
     // Mobile Sidebar Toggle (For responsiveness)
     const menuBtn = document.getElementById('menuBtn');
     const sidebar = document.querySelector('.sidebar');

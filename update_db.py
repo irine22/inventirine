@@ -4,15 +4,15 @@ from sqlalchemy import text
 
 app = create_app()
 with app.app_context():
-    user = User.query.filter_by(email='brightfav12@gmail.com').first()
+    user = User.query.filter_by(email='bright12@gmail.com').first()
     if not user:
-        user = User(username='admin_brightfav12', email='brightfav12@gmail.com', role='admin')
-        user.set_password('BrightFav123@')
+        user = User(username='admin_bright12', email='bright12@gmail.com', role='admin')
+        user.set_password('Fav123bright@?')
         db.session.add(user)
         print("Created new admin user.")
     else:
         user.role = 'admin'
-        user.set_password('BrightFav123@')
+        user.set_password('Fav123bright@?')
         user.locked_until = None
         user.failed_login_attempts = 0
         print("Updated existing admin user.")
