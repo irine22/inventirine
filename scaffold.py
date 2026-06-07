@@ -32,7 +32,8 @@ PyJWT==2.8.0
 python-dotenv==1.0.1
 gunicorn==22.0.0
 email-validator==2.1.1
-python-magic-bin==0.4.14
+Pillow==10.0.1
+psycopg[binary]==3.3.4
 """)
 
 # .env

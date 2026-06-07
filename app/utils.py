@@ -1,5 +1,4 @@
 import os
-import magic
 from PIL import Image
 from werkzeug.utils import secure_filename
 from app.models import AuditLog
@@ -7,11 +6,17 @@ from app import db
 from datetime import datetime, timezone
 
 def is_valid_image(file_stream):
-    """Check MIME type using python-magic."""
-    header = file_stream.read(2048)
-    file_stream.seek(0)
-    mime = magic.from_buffer(header, mime=True)
-    return mime in ['image/jpeg', 'image/png']
+    """Check image validity using Pillow instead of python-magic."""
+    try:
+        image = Image.open(file_stream)
+        image.verify()
+        valid = image.format in ['JPEG', 'PNG']
+    except Exception:
+        valid = False
+    finally:
+        file_stream.seek(0)
+
+    return valid
 
 def process_and_save_image(file_obj, upload_folder):
     """Strip EXIF data and save."""
