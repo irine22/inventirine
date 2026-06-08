@@ -13,86 +13,60 @@ logger = logging.getLogger(__name__)
 
 auth_bp = Blueprint('auth', __name__)
 
-# ── Role Selection Entry ─────────────────────────────────────────────────────
-@auth_bp.route('/login')
+# ── Unified Login ────────────────────────────────────────────────────────────
+@auth_bp.route('/login', methods=['GET', 'POST'])
 def login():
     if current_user.is_authenticated:
         return redirect(url_for('inventory.dashboard'))
-    return redirect(url_for('auth.role_select'))
-
-@auth_bp.route('/role-select')
-def role_select():
-    if current_user.is_authenticated:
-        return redirect(url_for('inventory.dashboard'))
-    return render_template('auth/role_select.html', title='Choose Portal')
-
-
-def _handle_login(form, role_label, role_filter, login_route):
-    """Shared login handler for admin and supplier portals."""
+    form = LoginForm()
     if form.validate_on_submit():
-        # Normalize email before database lookup
         normalized_email = form.email.data.strip().lower()
         user = User.query.filter_by(email=normalized_email).first()
 
-        logger.info("Login attempt: email=%s user_found=%s role_label=%s",
-                     normalized_email, user is not None, role_label)
+        logger.info("Login attempt: email=%s user_found=%s",
+                     normalized_email, user is not None)
 
-        # Account lockout check
         if user and user.is_locked:
             logger.warning("Login rejected (locked): email=%s locked_until=%s",
                            normalized_email, user.locked_until)
             flash('Invalid email or password. Please try again later.', 'danger')
-            return redirect(url_for(login_route))
+            return render_template('auth/login.html', title='Login', form=form)
 
         if user and user.check_password(form.password.data):
-            # Verify the user belongs to the chosen portal
-            if not role_filter(user):
-                logger.warning("Login rejected (role mismatch): email=%s role=%s expected=%s",
-                               normalized_email, user.role, role_label)
-                flash('Invalid email or password. Please try again.', 'danger')
-                return redirect(url_for('auth.role_select'))
-
-            # Suspended (soft-deleted) account
             if user.is_deleted:
                 logger.warning("Login rejected (deleted): email=%s", normalized_email)
                 flash('Your account has been suspended.', 'danger')
-                return redirect(url_for(login_route))
+                return render_template('auth/login.html', title='Login', form=form)
 
-            # Successful login — reset lockout counters
             user.reset_failed_logins()
             user.update_last_seen()
-
-            # Prevent session fixation by clearing the session before logging in
             session.clear()
-
             login_user(user, remember=form.remember_me.data)
-
-            # Mark session as permanent so PERMANENT_SESSION_LIFETIME applies
             session.permanent = True
 
-            # Log to ActivityLog
             from app.models import ActivityLog
-            log = ActivityLog(user_id=user.id, action=f"User logged in via {role_label} portal")
+            log = ActivityLog(user_id=user.id, action=f"User logged in as {user.role}")
             db.session.add(log)
             db.session.commit()
 
+            # Role-based redirect
+            role = (getattr(user, 'role', '') or '').strip().lower()
             next_page = request.args.get('next')
-            if not next_page or urlparse(next_page).netloc != '':
-                next_page = url_for('inventory.dashboard')
-            return redirect(next_page)
+            if next_page and urlparse(next_page).netloc == '':
+                return redirect(next_page)
+            if role == 'supplier':
+                return redirect(url_for('supplier.products'))
+            return redirect(url_for('inventory.dashboard'))
         else:
-            # Record the failed attempt
             if user:
                 logger.warning("Login rejected (bad password): email=%s", normalized_email)
                 user.record_failed_login()
             else:
                 logger.warning("Login rejected (user not found): email=%s", normalized_email)
             flash('Invalid email or password. Please try again.', 'danger')
-        return None
+        return render_template('auth/login.html', title='Login', form=form)
 
-    # ── Form validation failed – show WHY ──────────────────────────────────────
     if request.method == 'POST':
-        # Check CSRF token explicitly
         csrf_token = request.form.get('csrf_token')
         if not csrf_token:
             logger.warning("Login form validation failed: CSRF token missing (email=%s)",
@@ -109,33 +83,22 @@ def _handle_login(form, role_label, role_filter, login_route):
                     field_label = label.text if label else field_name
                     logger.warning("Login form validation failed: %s=%s", field_label, err)
                     flash(f'{field_label}: {err}', 'danger')
-    return None
+
+    return render_template('auth/login.html', title='Login', form=form)
 
 
-# ── Admin Login ──────────────────────────────────────────────────────────────
+# ── Legacy redirect routes ──────────────────────────────────────────────────
+@auth_bp.route('/role-select')
+def role_select():
+    return redirect(url_for('auth.login'))
+
 @auth_bp.route('/login/admin', methods=['GET', 'POST'])
 def admin_login():
-    if current_user.is_authenticated:
-        return redirect(url_for('inventory.dashboard'))
-    form = LoginForm()
-    # Normalize role to avoid mismatches from capitalization or trailing spaces
-    result = _handle_login(form, 'Admin', lambda u: (getattr(u, 'role', '') or '').strip().lower() in ('admin', 'user'), 'auth.admin_login')
-    if result:
-        return result
-    return render_template('auth/login_admin.html', title='Admin Login', form=form)
+    return redirect(url_for('auth.login'))
 
-
-# ── Supplier Login ───────────────────────────────────────────────────────────
 @auth_bp.route('/login/supplier', methods=['GET', 'POST'])
 def supplier_login():
-    if current_user.is_authenticated:
-        return redirect(url_for('inventory.dashboard'))
-    form = LoginForm()
-    # Accept role values with varied casing/whitespace
-    result = _handle_login(form, 'Supplier', lambda u: (getattr(u, 'role', '') or '').strip().lower() == 'supplier', 'auth.supplier_login')
-    if result:
-        return result
-    return render_template('auth/login_supplier.html', title='Supplier Login', form=form)
+    return redirect(url_for('auth.login'))
 
 
 # ── Logout ───────────────────────────────────────────────────────────────────
