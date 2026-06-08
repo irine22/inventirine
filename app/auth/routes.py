@@ -1,13 +1,15 @@
-from flask import Blueprint, render_template, redirect, url_for, flash, request, session
-from urllib.parse import urlparse
-from flask_login import login_user, logout_user, login_required, current_user
+import logging
+import os
 from functools import wraps
+from urllib.parse import urlparse
+from flask import Blueprint, render_template, redirect, url_for, flash, request, session, current_app
+from flask_login import login_user, logout_user, login_required, current_user
 from app.models import User
 from app.auth.forms import LoginForm, RegistrationForm, ChangePasswordForm, ResetPasswordRequestForm, ResetPasswordConfirmForm, UpdateProfileForm, SmsResetRequestForm, SmsOtpVerifyForm
 from app import db, limiter
-import os
-from flask import current_app
 from app.utils import process_and_save_image, log_audit
+
+logger = logging.getLogger(__name__)
 
 auth_bp = Blueprint('auth', __name__)
 
@@ -32,19 +34,27 @@ def _handle_login(form, role_label, role_filter, login_route):
         normalized_email = form.email.data.strip().lower()
         user = User.query.filter_by(email=normalized_email).first()
 
+        logger.info("Login attempt: email=%s user_found=%s role_label=%s",
+                     normalized_email, user is not None, role_label)
+
         # Account lockout check
         if user and user.is_locked:
+            logger.warning("Login rejected (locked): email=%s locked_until=%s",
+                           normalized_email, user.locked_until)
             flash('Invalid email or password. Please try again later.', 'danger')
             return redirect(url_for(login_route))
 
         if user and user.check_password(form.password.data):
             # Verify the user belongs to the chosen portal
             if not role_filter(user):
+                logger.warning("Login rejected (role mismatch): email=%s role=%s expected=%s",
+                               normalized_email, user.role, role_label)
                 flash('Invalid email or password. Please try again.', 'danger')
                 return redirect(url_for('auth.role_select'))
 
             # Suspended (soft-deleted) account
             if user.is_deleted:
+                logger.warning("Login rejected (deleted): email=%s", normalized_email)
                 flash('Your account has been suspended.', 'danger')
                 return redirect(url_for(login_route))
 
@@ -73,7 +83,10 @@ def _handle_login(form, role_label, role_filter, login_route):
         else:
             # Record the failed attempt
             if user:
+                logger.warning("Login rejected (bad password): email=%s", normalized_email)
                 user.record_failed_login()
+            else:
+                logger.warning("Login rejected (user not found): email=%s", normalized_email)
             flash('Invalid email or password. Please try again.', 'danger')
         return None
 
@@ -82,14 +95,19 @@ def _handle_login(form, role_label, role_filter, login_route):
         # Check CSRF token explicitly
         csrf_token = request.form.get('csrf_token')
         if not csrf_token:
+            logger.warning("Login form validation failed: CSRF token missing (email=%s)",
+                           request.form.get('email', 'unknown'))
             flash('Session expired or missing security token. Please reload the page and try again.', 'danger')
         elif form.csrf_token.errors:
+            logger.warning("Login form validation failed: CSRF errors=%s (email=%s)",
+                           form.csrf_token.errors, request.form.get('email', 'unknown'))
             flash('Security token validation failed. Please reload the page and try again.', 'danger')
         else:
             for field_name, errors in form.errors.items():
                 for err in errors:
                     label = getattr(getattr(form, field_name, None), 'label', None)
                     field_label = label.text if label else field_name
+                    logger.warning("Login form validation failed: %s=%s", field_label, err)
                     flash(f'{field_label}: {err}', 'danger')
     return None
 
