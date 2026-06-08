@@ -117,7 +117,7 @@ def edit_product(id):
             file = form.image.data
             filename = secure_filename(file.filename)
             unique_filename = f"{uuid.uuid4().hex}_{filename}"
-            upload_path = os.path.join(request.application.root_path, 'static', 'uploads', 'products')
+            upload_path = os.path.join(current_app.root_path, 'static', 'uploads', 'products')
             os.makedirs(upload_path, exist_ok=True)
             file.save(os.path.join(upload_path, unique_filename))
             product.image_path = f'uploads/products/{unique_filename}'

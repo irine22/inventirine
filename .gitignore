@@ -8,3 +8,6 @@ __pycache__/
 *.sqlite3
 .DS_Store
 .env
+error.log
+ssh pass
+ssh pass.pub
