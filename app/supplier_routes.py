@@ -10,7 +10,7 @@ from flask_login import login_required, current_user
 from app.models import Product, InventoryMovement, Order, db
 from app import limiter
 from app.auth.routes import supplier_password_required
-from app.utils import log_audit
+from app.utils import log_audit, scan_file
 from app.inventory.forms import ProductForm, StockUpdateForm, OrderActionForm, ShipOrderForm, BulkImportForm
 from datetime import datetime, timezone
 
@@ -366,7 +366,12 @@ def import_products():
         file = form.file.data
         filename = file.filename
         content = file.read()
-        
+
+        clean, scan_msg = scan_file(content, filename)
+        if not clean:
+            flash(scan_msg, 'danger')
+            return render_template('supplier/import.html', form=form)
+
         errors = []
         success = 0
         
