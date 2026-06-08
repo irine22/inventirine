@@ -283,21 +283,13 @@ def reset_password():
     if current_user.is_authenticated:
         return redirect(url_for('inventory.dashboard'))
 
-    # Do not allow password reset if SMTP is not configured (no way to deliver token)
+    # Check SMTP configuration before attempting email-based password reset.
     mail_user = current_app.config.get('MAIL_USERNAME')
     mail_pass = current_app.config.get('MAIL_PASSWORD')
     smtp_configured = bool(mail_user and mail_pass and mail_user != 'your_gmail@gmail.com')
 
-    if not smtp_configured:
-        flash(
-            'Password reset is unavailable because email (SMTP) is not configured. '
-            'Please contact your administrator or use the Change Password option if you are logged in.',
-            'warning'
-        )
-        return redirect(url_for('auth.login'))
-
     form = ResetPasswordRequestForm()
-    if form.validate_on_submit():
+    if smtp_configured and form.validate_on_submit():
         user = User.query.filter_by(email=form.email.data).first()
         if not user:
             flash('If an account exists with that email, a reset link has been sent.', 'success')
@@ -342,7 +334,7 @@ def reset_password():
         flash('A password reset link has been sent to your email. It expires in 15 minutes.', 'success')
         return redirect(url_for('auth.login'))
 
-    return render_template('auth/reset_password.html', title='Reset Password', form=form)
+    return render_template('auth/reset_password.html', title='Reset Password', form=form, smtp_configured=smtp_configured)
 
 
 @auth_bp.route('/reset-password/<token>', methods=['GET', 'POST'])

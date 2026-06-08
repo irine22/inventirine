@@ -6,11 +6,19 @@ from wtforms import StringField, PasswordField, BooleanField, SubmitField, Selec
 from wtforms.validators import DataRequired, Email, Length, EqualTo, ValidationError
 from app.models import User
 
+
 def sanitize_html(text):
     """Sanitize input against HTML injection and XSS using bleach."""
     if text is None:
         return text
     return bleach.clean(text)
+
+
+def normalize_email(text):
+    """Normalize email values for login and registration."""
+    if text is None:
+        return text
+    return text.strip().lower()
 
 
 def strong_password(form, field):
@@ -30,7 +38,7 @@ def strong_password(form, field):
 
 
 class LoginForm(FlaskForm):
-    email = StringField('Email', validators=[DataRequired(), Email()])
+    email = StringField('Email', validators=[DataRequired(), Email()], filters=[normalize_email])
     password = PasswordField('Password', validators=[DataRequired()])
     remember_me = BooleanField('Remember Me')
     submit = SubmitField('Sign In')
@@ -38,7 +46,7 @@ class LoginForm(FlaskForm):
 
 class RegistrationForm(FlaskForm):
     username = StringField('Username', validators=[DataRequired(), Length(min=3, max=64)], filters=[sanitize_html])
-    email = StringField('Email', validators=[DataRequired(), Email()], filters=[sanitize_html])
+    email = StringField('Email', validators=[DataRequired(), Email()], filters=[sanitize_html, normalize_email])
     password = PasswordField('Password', validators=[
         DataRequired(), Length(min=8), strong_password
     ])
@@ -78,7 +86,7 @@ class ChangePasswordForm(FlaskForm):
     submit = SubmitField('Update Password')
 
 class ResetPasswordRequestForm(FlaskForm):
-    email = StringField('Email', validators=[DataRequired(), Email()], filters=[sanitize_html])
+    email = StringField('Email', validators=[DataRequired(), Email()], filters=[sanitize_html, normalize_email])
     submit = SubmitField('Request Password Reset')
 
 class ResetPasswordConfirmForm(FlaskForm):
@@ -92,7 +100,7 @@ class ResetPasswordConfirmForm(FlaskForm):
 
 class UpdateProfileForm(FlaskForm):
     company_name = StringField('Company Name', filters=[sanitize_html])
-    email = StringField('Contact Email', validators=[DataRequired(), Email()], filters=[sanitize_html])
+    email = StringField('Contact Email', validators=[DataRequired(), Email()], filters=[sanitize_html, normalize_email])
     phone = StringField('Phone Number', filters=[sanitize_html])
     address = StringField('Address', filters=[sanitize_html])
     # File allowed limits file type to images. FileSize limits to 2MB (2 * 1024 * 1024 bytes)
