@@ -3,6 +3,7 @@
 {% block page_title %}Supplier Dashboard{% endblock %}
 
 {% block content %}
+<marquee style="position: relative; z-index: 1; color: var(--accent-blue); font-size: 1.1rem; font-weight: bold; padding: 8px 0; background: rgba(0,0,0,0.5); border-bottom: 1px solid rgba(102,252,241,0.3);" direction="right" scrollamount="3">WELCOME TO INVENTARY MANAGEMENT SYSTEM</marquee>
 <div style="background: url('{{ url_for('static', filename='img/warehouse_shelves.jpg') }}') center/cover no-repeat fixed; margin: -30px; padding: 30px; min-height: calc(100vh - 80px); position: relative;">
     <div style="position: absolute; top:0; left:0; right:0; bottom:0; background: rgba(11, 12, 16, 0.82); z-index: 0;"></div>
     <div class="dashboard-grid animate-fade" style="position: relative; z-index: 1;">
