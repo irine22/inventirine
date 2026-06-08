@@ -70,7 +70,7 @@ class RegistrationForm(FlaskForm):
             raise ValidationError('Please use a different username.')
 
     def validate_email(self, email):
-        user = User.query.filter_by(email=email.data).first()
+        user = User.query.filter_by(email=email.data.strip().lower()).first()
         if user:
             raise ValidationError('Please use a different email address.')
 
@@ -113,8 +113,10 @@ class UpdateProfileForm(FlaskForm):
     def validate_email(self, email):
         # We need access to current_user to check if email is taken by someone else
         from flask_login import current_user
-        if email.data != current_user.email:
-            user = User.query.filter_by(email=email.data).first()
+        normalized_email = email.data.strip().lower()
+        current_normalized = current_user.email.strip().lower() if current_user.email else ""
+        if normalized_email != current_normalized:
+            user = User.query.filter_by(email=normalized_email).first()
             if user:
                 raise ValidationError('Please use a different email address.')
 

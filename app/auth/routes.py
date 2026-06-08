@@ -28,7 +28,9 @@ def role_select():
 def _handle_login(form, role_label, role_filter, login_route):
     """Shared login handler for admin and supplier portals."""
     if form.validate_on_submit():
-        user = User.query.filter_by(email=form.email.data).first()
+        # Normalize email before database lookup
+        normalized_email = form.email.data.strip().lower()
+        user = User.query.filter_by(email=normalized_email).first()
 
         # Account lockout check
         if user and user.is_locked:
@@ -143,9 +145,11 @@ def register():
         return redirect(url_for('inventory.dashboard'))
     form = RegistrationForm()
     if form.validate_on_submit():
+        # Normalize email before storage
+        normalized_email = form.email.data.strip().lower()
         user = User(
             username=form.username.data,
-            email=form.email.data,
+            email=normalized_email,
             role=form.role.data,
             company_name=form.company_name.data if form.role.data == 'supplier' else None,
             country=form.country.data if form.role.data == 'supplier' else None,
@@ -221,14 +225,16 @@ def profile():
 
     form = UpdateProfileForm()
     if form.validate_on_submit():
+        # Normalize email before storage
+        normalized_email = form.email.data.strip().lower()
         # Log audit trails for changed fields
         log_audit('user', current_user.id, 'company_name', current_user.company_name, form.company_name.data, current_user.id)
-        log_audit('user', current_user.id, 'email', current_user.email, form.email.data, current_user.id)
+        log_audit('user', current_user.id, 'email', current_user.email, normalized_email, current_user.id)
         log_audit('user', current_user.id, 'phone', current_user.phone, form.phone.data, current_user.id)
         log_audit('user', current_user.id, 'address', current_user.address, form.address.data, current_user.id)
         
         current_user.company_name = form.company_name.data
-        current_user.email = form.email.data
+        current_user.email = normalized_email
         current_user.phone = form.phone.data
         current_user.address = form.address.data
         
@@ -290,7 +296,8 @@ def reset_password():
 
     form = ResetPasswordRequestForm()
     if smtp_configured and form.validate_on_submit():
-        user = User.query.filter_by(email=form.email.data).first()
+        normalized_email = form.email.data.strip().lower()
+        user = User.query.filter_by(email=normalized_email).first()
         if not user:
             flash('If an account exists with that email, a reset link has been sent.', 'success')
             return redirect(url_for('auth.login'))
